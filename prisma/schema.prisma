@@ -1,0 +1,277 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Provider {
+  LOCAL
+  GOOGLE
+}
+
+enum Grade {
+  common
+  rare
+  super_rare
+  legendary
+}
+
+enum Genre {
+  album
+  special
+  landscape
+  season_greeting
+  fan_meeting
+  concert
+  md
+  collage
+  branding
+  etc
+}
+
+enum UserPhotocardStatus {
+  OWNED
+  ON_SALE
+  TRADE_PENDING
+}
+
+enum PointTransactionType {
+  EVENT
+  BUY
+  SELL
+}
+
+enum SaleStatus {
+  SALE
+  SOLD_OUT
+  CANCELED
+}
+
+enum TradeStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELED
+}
+
+enum NotificationType {
+  PURCHASE_COMPLETED
+  SALE_COMPLETED
+  SOLD_OUT
+  TRADE_CANCELED_BY_SOLD_OUT
+  TRADE_PROPOSED
+  TRADE_CANCELED
+  TRADE_ACCEPTED
+  TRADE_REJECTED
+  SALE_STOPPED
+  SALE_UPDATED
+}
+
+enum NotificationTargetType {
+  MY_GALLERY
+  MY_SALE_PAGE
+  SALE_DETAIL
+}
+
+enum OperationType {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model User {
+  uuid         String   @id @default(uuid()) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String?  @map("password_hash") @db.VarChar(255)
+  nickname     String   @unique @db.VarChar(30)
+  provider     Provider
+  providerId   String?  @map("provider_id") @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  refreshTokens     RefreshToken[]
+  photocards        Photocard[]        @relation("PhotocardCreator")
+  ownedCards        UserPhotocard[]    @relation("CardOwner")
+  point             UserPoint?
+  pointTransactions PointTransaction[]
+  rewardState       RewardState?
+  sales             Sale[]
+  proposedTrades    Trade[]            @relation("TradeProposer")
+  receivedTrades    Trade[]            @relation("TradeReceiver")
+  notifications     Notification[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  userUuid  String   @map("user_uuid") @db.Uuid
+  token     String   @db.VarChar(500)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([userUuid])
+  @@map("refresh_tokens")
+}
+
+model Photocard {
+  id            Int    @id @default(autoincrement())
+  creatorUuid   String @map("creator_uuid") @db.Uuid
+  name          String @db.VarChar(100)
+  imageUrl      String @map("image_url") @db.VarChar(500)
+  description   String?
+  grade         Grade
+  genre         Genre
+  totalQuantity Int    @map("total_quantity")
+  price         Int
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  creator       User            @relation("PhotocardCreator", fields: [creatorUuid], references: [uuid])
+  userCards     UserPhotocard[]
+  sales         Sale[]
+
+  @@index([creatorUuid])
+  @@map("photocards")
+}
+
+model UserPhotocard {
+  id           Int    @id @default(autoincrement())
+  photocardId  Int    @map("photocard_id")
+  ownerUuid    String @map("owner_uuid") @db.Uuid
+  serialNumber Int    @map("serial_number")
+  status       UserPhotocardStatus
+  acquiredAt   DateTime @map("acquired_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  photocard Photocard @relation(fields: [photocardId], references: [id])
+  owner     User      @relation("CardOwner", fields: [ownerUuid], references: [uuid])
+  trades    Trade[]   @relation("OfferedCard")
+
+  @@unique([photocardId, serialNumber])
+  @@index([ownerUuid])
+  @@index([photocardId])
+  @@map("user_photocards")
+}
+
+model UserPoint {
+  userUuid String @id @map("user_uuid") @db.Uuid
+  balance  Int    @default(0)
+
+  user User @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+
+  @@map("user_points")
+}
+
+model PointTransaction {
+  id       Int    @id @default(autoincrement())
+  userUuid String @map("user_uuid") @db.Uuid
+  amount   Int
+  type     PointTransactionType
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([userUuid])
+  @@map("point_transactions")
+}
+
+model RewardState {
+  id         Int      @id @default(autoincrement())
+  userUuid   String   @unique @map("user_uuid") @db.Uuid
+  lastDrawAt DateTime @map("last_draw_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+
+  @@map("reward_states")
+}
+
+model Sale {
+  id                 Int    @id @default(autoincrement())
+  userUuid            String @map("user_uuid") @db.Uuid
+  photocardId         Int    @map("photocard_id")
+  price               Int
+  quantity            Int
+  remainingQuantity   Int    @map("remaining_quantity")
+  status              SaleStatus
+  desiredGrade        Grade  @map("desired_grade")
+  desiredGenre        Genre  @map("desired_genre")
+  desiredDescription  String @map("desired_description")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  seller    User       @relation(fields: [userUuid], references: [uuid])
+  photocard Photocard  @relation(fields: [photocardId], references: [id])
+  trades    Trade[]
+
+  @@index([userUuid])
+  @@index([photocardId])
+  @@map("sales")
+}
+
+model Trade {
+  id            Int    @id @default(autoincrement())
+  proposerUuid  String @map("proposer_uuid") @db.Uuid
+  receiverUuid  String @map("receiver_uuid") @db.Uuid
+  saleId        Int    @map("sale_id")
+  offeredCardId Int    @map("offered_card_id")
+  status        TradeStatus
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  proposer   User          @relation("TradeProposer", fields: [proposerUuid], references: [uuid])
+  receiver   User          @relation("TradeReceiver", fields: [receiverUuid], references: [uuid])
+  sale       Sale          @relation(fields: [saleId], references: [id])
+  offeredCard UserPhotocard @relation("OfferedCard", fields: [offeredCardId], references: [id])
+
+  @@index([proposerUuid])
+  @@index([receiverUuid])
+  @@index([saleId])
+  @@index([offeredCardId])
+  @@map("trades")
+}
+
+model Notification {
+  id         Int                    @id @default(autoincrement())
+  userUuid   String                 @map("user_uuid") @db.Uuid
+  type       NotificationType
+  targetType NotificationTargetType @map("target_type")
+  targetId   Int?                   @map("target_id")
+  isRead     Boolean                @default(false) @map("is_read")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([userUuid])
+  @@index([targetType, targetId])
+  @@map("notifications")
+}
+
+model History {
+  id            Int           @id @default(autoincrement())
+  tableName     String        @map("table_name") @db.VarChar(50)
+  tableId       String        @map("table_id") @db.VarChar(255)
+  operationType OperationType @map("operation_type")
+  data          Json
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([tableName, tableId])
+  @@map("histories")
+}
