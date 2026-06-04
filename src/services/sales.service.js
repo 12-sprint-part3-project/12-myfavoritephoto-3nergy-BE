@@ -1,13 +1,17 @@
+import { findSaleList } from '../repositories/sales.repository.js';
+
 export const getSalesList = async (query) => {
+  const saleList = await findSaleList(query);
+
   return {
     data: {
-      items: [],
+      items: salesList,
     },
     meta: {
       page: Number(query.page) || 1,
       pageSize: Number(query.pageSize) || 20,
-      totalCount: 0,
-      totalPages: 0,
+      totalCount: salesList.length,
+      totalPages: 1,
       hasNextPage: false,
     },
   };
