@@ -8,6 +8,38 @@ import {
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
 
+export const signupUser = async ({ email, password, nickname }) => {
+  const existingEmailUser = await findUserByEmail(email);
+
+  if (existingEmailUser) {
+    throw AppError(ERROR_CODES.EMAIL_ALREADY_EXISTS);
+  }
+
+  const existingNicknameUser = await findeUserByNickname(nickname);
+
+  if (existingNicknameUser) {
+    throw AppError(ERROR_CODES.NICKNAME_ALREADY_EXISTS);
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const user = await createUser({
+    email,
+    nickname,
+    passwordHash,
+    provider: 'LOCAL',
+  });
+
+  return {
+    user: {
+      uuid: user.uuid,
+      email: user.email,
+      nickname: user.nickname,
+      provider: user.provider,
+    },
+  };
+};
+
 export const loginUser = async ({ email, password }) => {
   const user = await findUserByEmail(email);
 
@@ -25,40 +57,17 @@ export const loginUser = async ({ email, password }) => {
     expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
   });
 
+  const refreshToken = jwt.sign(
+    { userId: user.uuid },
+    process.env.JWT_REFRESH_SECRET,
+    {
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+    },
+  );
+
   return {
     accessToken,
-    user: {
-      uuid: user.uuid,
-      email: user.email,
-      nickname: user.nickname,
-      provider: user.provider,
-    },
-  };
-};
-
-export const signupUser = async ({ email, password, nickname }) => {
-  const existingEmailUser = await findUserByEmail(email);
-
-  if (existingEmailUser) {
-    throw AppError(ERROR_CODES.EMAIL_ALREADY_EXISTS);
-  }
-
-  const existingNicknameUser = await findeUserByNickname(nicknane);
-
-  if (existingNicknameUser) {
-    throw AppError(ERROR_CODES.NICKNAME_ALREADY_EXISTS);
-  }
-
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  const user = await createUser({
-    email,
-    nickname,
-    passwordHash,
-    provider: 'LOCAL',
-  });
-
-  return {
+    refreshToken,
     user: {
       uuid: user.uuid,
       email: user.email,
