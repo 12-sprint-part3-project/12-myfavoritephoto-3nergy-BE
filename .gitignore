@@ -34,3 +34,4 @@ coverage/
 
 # 기타
 *.swp
+/src/generated/prisma
