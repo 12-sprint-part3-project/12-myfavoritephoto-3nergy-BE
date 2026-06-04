@@ -100,6 +100,8 @@ model User {
   pointTransactions PointTransaction[]
   rewardState       RewardState?
   sales             Sale[]
+  saleLogsAsBuyer   SaleLog[]          @relation("SaleLogBuyer")
+  saleLogsAsSeller  SaleLog[]          @relation("SaleLogSeller")
   proposedTrades    Trade[]            @relation("TradeProposer")
   receivedTrades    Trade[]            @relation("TradeReceiver")
   notifications     Notification[]
@@ -123,34 +125,35 @@ model RefreshToken {
 }
 
 model Photocard {
-  id            Int    @id @default(autoincrement())
-  creatorUuid   String @map("creator_uuid") @db.Uuid
-  name          String @db.VarChar(100)
-  imageUrl      String @map("image_url") @db.VarChar(500)
+  id            Int     @id @default(autoincrement())
+  creatorUuid   String  @map("creator_uuid") @db.Uuid
+  name          String  @db.VarChar(100)
+  imageUrl      String  @map("image_url") @db.VarChar(500)
   description   String?
   grade         Grade
   genre         Genre
-  totalQuantity Int    @map("total_quantity")
+  totalQuantity Int     @map("total_quantity")
   price         Int
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  creator       User            @relation("PhotocardCreator", fields: [creatorUuid], references: [uuid])
-  userCards     UserPhotocard[]
-  sales         Sale[]
+  creator   User            @relation("PhotocardCreator", fields: [creatorUuid], references: [uuid])
+  userCards UserPhotocard[]
+  sales     Sale[]
+  saleLogs  SaleLog[]
 
   @@index([creatorUuid])
   @@map("photocards")
 }
 
 model UserPhotocard {
-  id           Int    @id @default(autoincrement())
-  photocardId  Int    @map("photocard_id")
-  ownerUuid    String @map("owner_uuid") @db.Uuid
-  serialNumber Int    @map("serial_number")
+  id           Int                 @id @default(autoincrement())
+  photocardId  Int                 @map("photocard_id")
+  ownerUuid    String              @map("owner_uuid") @db.Uuid
+  serialNumber Int                 @map("serial_number")
   status       UserPhotocardStatus
-  acquiredAt   DateTime @map("acquired_at") @db.Timestamptz(6)
+  acquiredAt   DateTime            @map("acquired_at") @db.Timestamptz(6)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -175,8 +178,8 @@ model UserPoint {
 }
 
 model PointTransaction {
-  id       Int    @id @default(autoincrement())
-  userUuid String @map("user_uuid") @db.Uuid
+  id       Int                  @id @default(autoincrement())
+  userUuid String               @map("user_uuid") @db.Uuid
   amount   Int
   type     PointTransactionType
 
@@ -199,22 +202,23 @@ model RewardState {
 }
 
 model Sale {
-  id                 Int    @id @default(autoincrement())
-  userUuid            String @map("user_uuid") @db.Uuid
-  photocardId         Int    @map("photocard_id")
-  price               Int
-  quantity            Int
-  remainingQuantity   Int    @map("remaining_quantity")
-  status              SaleStatus
-  desiredGrade        Grade  @map("desired_grade")
-  desiredGenre        Genre  @map("desired_genre")
-  desiredDescription  String @map("desired_description")
+  id                 Int        @id @default(autoincrement())
+  userUuid           String     @map("user_uuid") @db.Uuid
+  photocardId        Int        @map("photocard_id")
+  price              Int
+  quantity           Int
+  remainingQuantity  Int        @map("remaining_quantity")
+  status             SaleStatus
+  desiredGrade       Grade      @map("desired_grade")
+  desiredGenre       Genre      @map("desired_genre")
+  desiredDescription String     @map("desired_description")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  seller    User       @relation(fields: [userUuid], references: [uuid])
-  photocard Photocard  @relation(fields: [photocardId], references: [id])
+  seller    User      @relation(fields: [userUuid], references: [uuid])
+  photocard Photocard @relation(fields: [photocardId], references: [id])
+  saleLogs  SaleLog[]
   trades    Trade[]
 
   @@index([userUuid])
@@ -222,20 +226,44 @@ model Sale {
   @@map("sales")
 }
 
+model SaleLog {
+  id          Int    @id @default(autoincrement())
+  saleId      Int    @map("sale_id")
+  buyerUuid   String @map("buyer_uuid") @db.Uuid
+  sellerUuid  String @map("seller_uuid") @db.Uuid
+  photocardId Int    @map("photocard_id")
+
+  quantity Int
+  price    Int
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sale      Sale      @relation(fields: [saleId], references: [id])
+  buyer     User      @relation("SaleLogBuyer", fields: [buyerUuid], references: [uuid])
+  seller    User      @relation("SaleLogSeller", fields: [sellerUuid], references: [uuid])
+  photocard Photocard @relation(fields: [photocardId], references: [id])
+
+  @@index([saleId])
+  @@index([buyerUuid])
+  @@index([sellerUuid])
+  @@index([photocardId])
+  @@map("sale_logs")
+}
+
 model Trade {
-  id            Int    @id @default(autoincrement())
-  proposerUuid  String @map("proposer_uuid") @db.Uuid
-  receiverUuid  String @map("receiver_uuid") @db.Uuid
-  saleId        Int    @map("sale_id")
-  offeredCardId Int    @map("offered_card_id")
+  id            Int         @id @default(autoincrement())
+  proposerUuid  String      @map("proposer_uuid") @db.Uuid
+  receiverUuid  String      @map("receiver_uuid") @db.Uuid
+  saleId        Int         @map("sale_id")
+  offeredCardId Int         @map("offered_card_id")
   status        TradeStatus
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  proposer   User          @relation("TradeProposer", fields: [proposerUuid], references: [uuid])
-  receiver   User          @relation("TradeReceiver", fields: [receiverUuid], references: [uuid])
-  sale       Sale          @relation(fields: [saleId], references: [id])
+  proposer    User          @relation("TradeProposer", fields: [proposerUuid], references: [uuid])
+  receiver    User          @relation("TradeReceiver", fields: [receiverUuid], references: [uuid])
+  sale        Sale          @relation(fields: [saleId], references: [id])
   offeredCard UserPhotocard @relation("OfferedCard", fields: [offeredCardId], references: [id])
 
   @@index([proposerUuid])
