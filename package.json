@@ -2,11 +2,11 @@
   "name": "12-myfavoritephoto-3nergy-be",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js",
-    "start": "node index.js",
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
     "lint": "eslint .",
     "format": "prettier . --write",
     "format:check": "prettier . --check"
