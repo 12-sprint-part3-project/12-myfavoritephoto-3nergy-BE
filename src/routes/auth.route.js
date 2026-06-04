@@ -1,7 +1,47 @@
 import express from 'express';
-import { login } from '../controllers/auth.controller.js';
+import { login, signup } from '../controllers/auth.controller.js';
+import { validate } from '../middlewares/validate.middleware.js';
+import { signupSchema } from '../validators/auth.schema.js';
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * /api/auth/signup:
+ *   post:
+ *     summary: 회원가입
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - nickname
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: test@example.com
+ *               password:
+ *                 type: string
+ *                 example: Password123!
+ *               nickname:
+ *                 type: string
+ *                 example: 테스터
+ *     responses:
+ *       201:
+ *         description: 회원가입 성공
+ *       400:
+ *         description: 잘못된 요청 또는 유효성 검사 실패
+ *       409:
+ *         description: 이미 사용 중인 이메일 또는 닉네임
+ */
+router.post('/signup', validate(signupSchema), signup);
 
 /**
  * @swagger
