@@ -1,8 +1,8 @@
 ---
 name: 버그 리포트
 about: 버그 발견
-title: "[Bug] Bug 발견"
-labels: "bug"
+title: '[Bug] Bug 발견'
+labels: 'bug'
 ---
 
 ## 버그 설명
