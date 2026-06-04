@@ -2,6 +2,7 @@ import express from 'express';
 import { login, signup } from '../controllers/auth.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { signupSchema } from '../validators/auth.schema.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -75,5 +76,12 @@ router.post('/signup', validate(signupSchema), signup);
  *         description: 로그인 실패
  */
 router.post('/login', login);
+
+router.get('/test', authenticate, (req, res) => {
+  res.json({
+    message: '인증 성공',
+    user: req.user,
+  });
+});
 
 export default router;
