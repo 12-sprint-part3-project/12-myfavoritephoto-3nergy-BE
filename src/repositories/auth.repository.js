@@ -9,6 +9,15 @@ export const findUserByEmail = async (email) => {
   });
 };
 
+// 닉네임으로 사용자 조회
+export const findeUserByNickname = async (nickname) => {
+  return prisma.user.findUnique({
+    where: {
+      nickname,
+    },
+  });
+};
+
 // 사용자 생성
 export const createUser = async (userData) => {
   return prisma.user.create({
