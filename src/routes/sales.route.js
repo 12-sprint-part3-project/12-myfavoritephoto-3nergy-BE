@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSalesList } from '../controllers/sales.controller.js';
+import { getSales } from '../controllers/sales.controller.js';
 
 const router = express.Router();
 
@@ -58,6 +58,6 @@ const router = express.Router();
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/', getSalesList);
+router.get('/', getSales);
 
 export default router;

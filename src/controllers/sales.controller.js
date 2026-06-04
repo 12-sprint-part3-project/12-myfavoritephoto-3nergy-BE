@@ -1,8 +1,16 @@
-export const getSalesList = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: '판매 포토카드 목록 조회 API입니다.',
-    data: [],
-    error: null,
-  });
+import { getSalesList } from '../services/sales.service.js';
+
+export const getSales = async (req, res, next) => {
+  try {
+    const result = await getSalesList(req.query);
+
+    return res.status(200).json({
+      success: true,
+      message: '판매 목록 조회에 성공했습니다.',
+      data: result,
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
