@@ -7,6 +7,7 @@ export const findSalesList = async ({
   genre,
   keyword,
   status,
+  sort,
 }) => {
   const skip = (page - 1) * pageSize;
 
@@ -37,14 +38,23 @@ export const findSalesList = async ({
     },
   };
 
+  const orderByMap = {
+    latest: { createdAt: 'desc' },
+    oldest: { createdAt: 'asc' },
+    price_asc: { price: 'asc' },
+    price_desc: { price: 'desc' },
+  };
+
+  const orderBy = orderByMap[sort] || {
+    createdAt: 'desc',
+  };
+
   const [salesList, totalCount] = await Promise.all([
     prisma.sale.findMany({
       where,
       skip,
       take: pageSize,
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy,
       include: {
         photocard: {
           select: {

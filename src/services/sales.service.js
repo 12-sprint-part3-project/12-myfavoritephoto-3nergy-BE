@@ -11,6 +11,7 @@ export const getSalesList = async (query) => {
     genre: query.genre,
     keyword: query.keyword,
     status: query.status,
+    sort: query.sort,
   });
 
   const items = salesList.map((sale) => ({
