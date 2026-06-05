@@ -3,9 +3,20 @@ import { findSalesList } from '../repositories/sales.repository.js';
 export const getSalesList = async (query) => {
   const salesList = await findSalesList(query);
 
+  const items = salesList.map((sale) => ({
+    saleId: sale.id,
+    price: sale.price,
+    quantity: sale.quantity,
+    remainingQuantity: sale.remainingQuantity,
+    status: sale.status,
+    createdAt: sale.createdAt,
+    photocard: sale.photocard,
+    seller: sale.seller,
+  }));
+
   return {
     data: {
-      items: salesList,
+      items,
     },
     meta: {
       page: Number(query.page) || 1,
