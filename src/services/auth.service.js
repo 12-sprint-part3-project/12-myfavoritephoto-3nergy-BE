@@ -88,6 +88,14 @@ export const loginUser = async ({ email, password }) => {
   };
 };
 
+export const logoutUser = async (refreshToken) => {
+  if (!refreshToken) {
+    return;
+  }
+
+  await deleteRefreshToken(refreshToken);
+};
+
 // Refresh Token을 검증하고 새로운 Access Token, Refresh Token을 재발급
 export const refreshTokenUser = async (refreshToken) => {
   // Refresh Token 자체가 없는 경우
