@@ -3,16 +3,28 @@ import { findCardsList } from '../repositories/gallery.repository.js';
 export const getCardsList = async (query) => {
   const cardsList = await findCardsList(query);
 
-  const photocards = cardsList.map((card) => ({
-    id: card.photocard.id,
-    name: card.photocard.name,
-    imageUrl: card.photocard.imageUrl,
-    grade: card.photocard.grade,
-    genre: card.photocard.genre,
-    price: card.photocard.price,
-    quantity: 1,
-    creatorNickname: card.photocard.creator.nickname,
-  }));
+  const cardMap = new Map();
+
+  cardsList.forEach((card) => {
+    const photocard = card.photocard;
+
+    if (!cardMap.has(photocard.id)) {
+      cardMap.set(photocard.id, {
+        id: photocard.id,
+        name: photocard.name,
+        imageUrl: photocard.imageUrl,
+        grade: photocard.grade,
+        genre: photocard.genre,
+        price: photocard.price,
+        quantity: 0,
+        creatorNickname: photocard.creator.nickname,
+      });
+    }
+
+    cardMap.get(photocard.id).quantity += 1;
+  });
+
+  const photocards = Array.from(cardMap.values());
 
   return {
     data: {
@@ -21,7 +33,7 @@ export const getCardsList = async (query) => {
     meta: {
       page: Number(query.page) || 1,
       pageSize: Number(query.pageSize) || 20,
-      totalCount: cardsList.length,
+      totalCount: photocards.length,
       totalPages: 1,
       hasNextPage: false,
     },
