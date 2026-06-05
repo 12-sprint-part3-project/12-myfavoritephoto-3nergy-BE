@@ -39,9 +39,8 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           enum: [SALE, SOLD_OUT]
- *           default: ALL
  *         required: false
- *         description: 판매 상태 필터
+ *         description: 판매 상태 필터, 미입력 시 전체 조회"
  *       - in: query
  *         name: sort
  *         schema:

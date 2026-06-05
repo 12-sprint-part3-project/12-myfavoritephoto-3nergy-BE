@@ -18,7 +18,7 @@ export const validate = (schema) => {
 
 export const validateQuery = (schema) => {
   return (req, res, next) => {
-    const result = schema.safeParse(req.body);
+    const result = schema.safeParse(req.query);
 
     if (!result.success) {
       const message = result.error.issues[0].message;
@@ -26,7 +26,7 @@ export const validateQuery = (schema) => {
       return next(AppError({ ...ERROR_CODES.INVALID_INPUT, message }));
     }
 
-    req.body = result.data;
+    req.validatedQuery = result.data;
     next();
   };
 };

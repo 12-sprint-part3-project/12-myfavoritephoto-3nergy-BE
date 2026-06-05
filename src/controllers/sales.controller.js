@@ -2,7 +2,7 @@ import { getSalesList } from '../services/sales.service.js';
 
 export const getSales = async (req, res, next) => {
   try {
-    const result = await getSalesList(req.query);
+    const result = await getSalesList(req.validatedQuery);
 
     return res.status(200).json({
       success: true,
