@@ -6,6 +6,7 @@ import { errorHandler } from './middlewares/error.middleware.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
 import cookieParser from 'cookie-parser';
+import { startRefreshTokenCleanupJob } from './jobs/refreshTokenCleanup.job.js';
 
 const app = express();
 
@@ -22,6 +23,10 @@ app.get('/', (req, res) => {
   res.send('API Server Running 🚀');
 });
 
+// cron jobs
+startRefreshTokenCleanupJob();
+
+// error handler
 app.use(errorHandler);
 
 export default app;
