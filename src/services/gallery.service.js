@@ -4,7 +4,7 @@ export const getCardsList = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const { cardsList, totalCount } = await findCardsList({
+  const { cardsList } = await findCardsList({
     page,
     pageSize,
     grade: query.grade,
@@ -26,6 +26,7 @@ export const getCardsList = async (query) => {
         grade: photocard.grade,
         genre: photocard.genre,
         price: photocard.price,
+        description: photocard.description,
         quantity: 0,
         creatorNickname: photocard.creator.nickname,
       });
@@ -60,8 +61,8 @@ export const getCardsList = async (query) => {
       photocards,
     },
     meta: {
-      page: Number(query.page) || 1,
-      pageSize: Number(query.pageSize) || 20,
+      page,
+      pageSize,
       totalCount: photocards.length,
       totalPages: 1,
       hasNextPage: false,

@@ -46,7 +46,14 @@ export const findCardsList = async ({
       orderBy,
       include: {
         photocard: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            grade: true,
+            genre: true,
+            description: true,
+            price: true,
             creator: {
               select: {
                 nickname: true,
@@ -56,6 +63,7 @@ export const findCardsList = async ({
         },
       },
     }),
+    prisma.userPhotocard.count({ where }),
   ]);
 
   return {
