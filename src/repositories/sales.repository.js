@@ -1,6 +1,12 @@
 import prisma from '../lib/prisma.js';
 
-export const findSalesList = async ({ page, pageSize, grade, genre }) => {
+export const findSalesList = async ({
+  page,
+  pageSize,
+  grade,
+  genre,
+  keyword,
+}) => {
   const skip = (page - 1) * pageSize;
 
   const where = {
@@ -11,6 +17,12 @@ export const findSalesList = async ({ page, pageSize, grade, genre }) => {
     photocard: {
       ...(grade && { grade }),
       ...(genre && { genre }),
+      ...(keyword && {
+        name: {
+          contains: keyword,
+          mode: 'insensitive',
+        },
+      }),
     },
   };
 

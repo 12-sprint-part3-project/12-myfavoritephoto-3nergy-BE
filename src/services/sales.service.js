@@ -9,6 +9,7 @@ export const getSalesList = async (query) => {
     pageSize,
     grade: query.grade,
     genre: query.genre,
+    keyword: query.keyword,
   });
 
   const items = salesList.map((sale) => ({
