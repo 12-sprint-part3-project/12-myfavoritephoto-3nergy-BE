@@ -26,8 +26,27 @@ export const getCardsList = async (query) => {
 
   const photocards = Array.from(cardMap.values());
 
+  const gradeCounts = {
+    common: 0,
+    rare: 0,
+    super_rare: 0,
+    legendary: 0,
+  };
+
+  photocards.forEach((card) => {
+    gradeCounts[card.grade] += card.quantity;
+  });
+
+  const formattedGradeCounts = Object.entries(gradeCounts).map(
+    ([grade, count]) => ({
+      grade,
+      count,
+    }),
+  );
+
   return {
     data: {
+      gradeCounts: formattedGradeCounts,
       photocards,
     },
     meta: {
