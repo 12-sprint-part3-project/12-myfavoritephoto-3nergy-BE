@@ -1,4 +1,8 @@
-import { loginUser, signupUser } from '../services/auth.service.js';
+import {
+  loginUser,
+  refreshTokenUser,
+  signupUser,
+} from '../services/auth.service.js';
 
 export const signup = async (req, res, next) => {
   try {
@@ -35,4 +39,25 @@ export const login = async (req, res, next) => {
   }
 };
 
-export const refresh = async (req, res, next) => {};
+export const refreshToken = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+
+    // 기존 Refresh Token 검증 후 새 Access Token, Refresh Token 발급
+    const { accessToken, refreshToken: newRefreshToken } =
+      await refreshTokenUser(refreshToken);
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.COOKIE_SECURE === 'true',
+      sameSite: process.env.COOKIE_SAME_SITE || 'lax',
+      maxAge: Number(process.env.COOKIE_MAX_AGE),
+    });
+
+    return res.status(200).json({
+      accessToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
