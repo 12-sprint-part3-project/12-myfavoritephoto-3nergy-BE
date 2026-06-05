@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const photocardQueryFields = z.object({
+const photocardQueryFields = {
   keyword: z.string().optional(),
   grade: z
     .enum(['common', 'rare', 'super_rare', 'legendary'], {
@@ -42,7 +42,7 @@ const photocardQueryFields = z.object({
     .min(1, '페이지 크기는 1 이상이어야 합니다.')
     .max(100, '페이지 크기는 100 이하여야 합니다.')
     .default(20),
-});
+};
 
 export const getSalesListQuerySchema = z.object({
   ...photocardQueryFields,
