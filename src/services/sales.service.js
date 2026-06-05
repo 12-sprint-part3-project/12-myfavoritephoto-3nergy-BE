@@ -8,6 +8,7 @@ export const getSalesList = async (query) => {
     page,
     pageSize,
     grade: query.grade,
+    genre: query.genre,
   });
 
   const items = salesList.map((sale) => ({
