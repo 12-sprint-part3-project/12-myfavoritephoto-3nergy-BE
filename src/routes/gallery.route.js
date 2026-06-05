@@ -1,6 +1,8 @@
 import express from 'express';
 import { getCards } from '../controllers/gallery.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
+import { validateQuery } from '../middlewares/validate.middleware.js';
+import { getGalleryListQuerySchema } from '../validators/photocard.schema.js';
 
 const router = express.Router();
 
@@ -65,6 +67,11 @@ const router = express.Router();
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/', authenticate, getCards);
+router.get(
+  '/',
+  authenticate,
+  validateQuery(getGalleryListQuerySchema),
+  getCards,
+);
 
 export default router;
