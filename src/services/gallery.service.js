@@ -1,7 +1,17 @@
 import { findCardsList } from '../repositories/gallery.repository.js';
 
 export const getCardsList = async (query) => {
-  const cardsList = await findCardsList(query);
+  const page = Number(query.page) || 1;
+  const pageSize = Number(query.pageSize) || 20;
+
+  const { cardsList, totalCount } = await findCardsList({
+    page,
+    pageSize,
+    grade: query.grade,
+    genre: query.genre,
+    keyword: query.keyword,
+    sort: query.sort,
+  });
 
   const cardMap = new Map();
 

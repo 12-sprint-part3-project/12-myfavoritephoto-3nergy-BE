@@ -4,7 +4,7 @@ export const getCards = async (req, res, next) => {
   try {
     const result = await getCardsList({
       userUuid: req.user.userUuid,
-      ...req.uery,
+      ...req.query,
     });
 
     return res.status(200).json({
