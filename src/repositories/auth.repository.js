@@ -64,5 +64,17 @@ export const deleteRefreshToken = async (refreshToken) => {
   });
 };
 
+// 만료된 refresh Token 삭제
+// lt == Less Than 보다 작다 라는 뜻
+export const deleteExpiredRefreshTokens = async () => {
+  return prisma.refreshToken.deleteMany({
+    where: {
+      expiresAt: {
+        lt: new Date(),
+      },
+    },
+  });
+};
+
 // Google ID로 사용자 조회
 export const findUserByGoogleId = async (googleId) => {};
