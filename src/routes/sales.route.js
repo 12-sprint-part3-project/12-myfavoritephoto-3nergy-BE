@@ -1,7 +1,8 @@
 import express from 'express';
 import { getSales } from '../controllers/sales.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 import { validateQuery } from '../middlewares/validate.middleware.js';
-import { getSalesListQuerySchema } from '../validators/sale.schema.js';
+import { getSalesListQuerySchema } from '../validators/photocard.schema.js';
 
 const router = express.Router();
 
@@ -71,6 +72,6 @@ const router = express.Router();
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/', validateQuery(getSalesListQuerySchema), getSales);
+router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
 
 export default router;
