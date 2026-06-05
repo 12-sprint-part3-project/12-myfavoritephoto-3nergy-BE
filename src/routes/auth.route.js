@@ -77,6 +77,8 @@ router.post('/signup', validate(signupSchema), signup);
  */
 router.post('/login', login);
 
+// router.post('/refresh', refresh);
+
 router.get('/test', authenticate, (req, res) => {
   res.json({
     message: '인증 성공',

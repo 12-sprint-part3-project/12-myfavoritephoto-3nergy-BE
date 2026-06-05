@@ -4,9 +4,14 @@ import {
   createUser,
   findeUserByNickname,
   findUserByEmail,
+  createRefreshToken,
+  findRefreshToken,
+  deleteRefreshToken,
 } from '../repositories/auth.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
+
+const REFRESH_TOKEN_EXPIRES_DAYS = 7;
 
 export const signupUser = async ({ email, password, nickname }) => {
   const existingEmailUser = await findUserByEmail(email);
@@ -65,6 +70,8 @@ export const loginUser = async ({ email, password }) => {
     },
   );
 
+  await createRefreshToken(user.uuid, refreshToken, getRefreshTokenExpiresAt());
+
   return {
     accessToken,
     refreshToken,
@@ -75,4 +82,12 @@ export const loginUser = async ({ email, password }) => {
       provider: user.provider,
     },
   };
+};
+
+// refreshToken 만료일 계산
+const getRefreshTokenExpiresAt = () => {
+  const expiresAt = new Date();
+  //
+  expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS);
+  return expiresAt;
 };
