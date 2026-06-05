@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {
-  createUser,
+  createUserWithPoint,
   findeUserByNickname,
   findUserByEmail,
   createRefreshToken,
@@ -28,7 +28,7 @@ export const signupUser = async ({ email, password, nickname }) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const user = await createUser({
+  const user = await createUserWithPoint({
     email,
     nickname,
     passwordHash,
@@ -179,7 +179,7 @@ export const refreshTokenUser = async (refreshToken) => {
 // refreshToken 만료일 계산
 const getRefreshTokenExpiresAt = () => {
   const expiresAt = new Date();
-  //
+
   expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS);
   return expiresAt;
 };

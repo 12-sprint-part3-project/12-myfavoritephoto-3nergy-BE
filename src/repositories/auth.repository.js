@@ -18,10 +18,21 @@ export const findeUserByNickname = async (nickname) => {
   });
 };
 
-// 사용자 생성
-export const createUser = async (userData) => {
-  return prisma.user.create({
-    data: userData,
+// 사용자 생성 + 포인트 테이블 생성
+export const createUserWithPoint = async (userData) => {
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: userData,
+    });
+
+    await tx.userPoint.create({
+      data: {
+        userUuid: user.uuid,
+        balance: 0,
+      },
+    });
+
+    return user;
   });
 };
 
