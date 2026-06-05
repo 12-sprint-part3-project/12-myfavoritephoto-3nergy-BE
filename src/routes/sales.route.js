@@ -1,5 +1,7 @@
 import express from 'express';
 import { getSales } from '../controllers/sales.controller.js';
+import { validateQuery } from '../middlewares/validate.middleware.js';
+import { getSalesListQuerySchema } from '../validators/sale.schema.js';
 
 const router = express.Router();
 
@@ -17,25 +19,36 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         required: false
- *         description: 포토카드 이름 검색어
+ *         description: 포토카드 이름 및 설명 검색어
  *       - in: query
  *         name: grade
  *         schema:
  *           type: string
+ *           enum: [common, rare, super_rare, legendary]
  *         required: false
  *         description: 등급 필터
  *       - in: query
  *         name: genre
  *         schema:
  *           type: string
+ *           enum: [album, special, landscape, season_greeting, fan_meeting, concert, md, collage, branding, etc]
  *         required: false
  *         description: 장르 필터
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
+ *           enum: [SALE, SOLD_OUT]
  *         required: false
- *         description: 판매 상태 필터
+ *         description: 판매 상태 필터, 미입력 시 전체 조회"
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [latest, oldest, price_asc, price_desc]
+ *           default: latest
+ *         required: false
+ *         description: 정렬 기준
  *       - in: query
  *         name: page
  *         schema:
@@ -58,6 +71,6 @@ const router = express.Router();
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/', getSales);
+router.get('/', validateQuery(getSalesListQuerySchema), getSales);
 
 export default router;

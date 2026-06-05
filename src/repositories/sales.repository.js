@@ -1,32 +1,85 @@
 import prisma from '../lib/prisma.js';
 
-export const findSalesList = async () => {
-  return prisma.sale.findMany({
-    where: {
-      status: {
-        in: ['SALE', 'SOLD_OUT'],
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    include: {
-      photocard: {
-        select: {
-          id: true,
-          name: true,
-          imageUrl: true,
-          grade: true,
-          genre: true,
-        },
-      },
+export const findSalesList = async ({
+  page,
+  pageSize,
+  grade,
+  genre,
+  keyword,
+  status,
+  sort,
+}) => {
+  const skip = (page - 1) * pageSize;
 
-      seller: {
-        select: {
-          uuid: true,
-          nickname: true,
+  const where = {
+    status: status || {
+      in: ['SALE', 'SOLD_OUT'],
+    },
+
+    photocard: {
+      ...(grade && { grade }),
+      ...(genre && { genre }),
+      ...(keyword && {
+        OR: [
+          {
+            name: {
+              contains: keyword,
+              mode: 'insensitive',
+            },
+          },
+          {
+            description: {
+              contains: keyword,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }),
+    },
+  };
+
+  const orderByMap = {
+    latest: { createdAt: 'desc' },
+    oldest: { createdAt: 'asc' },
+    price_asc: { price: 'asc' },
+    price_desc: { price: 'desc' },
+  };
+
+  const orderBy = orderByMap[sort] || {
+    createdAt: 'desc',
+  };
+
+  const [salesList, totalCount] = await Promise.all([
+    prisma.sale.findMany({
+      where,
+      skip,
+      take: pageSize,
+      orderBy,
+      include: {
+        photocard: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            grade: true,
+            genre: true,
+            description: true,
+          },
+        },
+
+        seller: {
+          select: {
+            uuid: true,
+            nickname: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.sale.count({ where }),
+  ]);
+
+  return {
+    salesList,
+    totalCount,
+  };
 };
