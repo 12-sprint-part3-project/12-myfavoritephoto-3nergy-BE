@@ -6,11 +6,12 @@ export const findSalesList = async ({
   grade,
   genre,
   keyword,
+  status,
 }) => {
   const skip = (page - 1) * pageSize;
 
   const where = {
-    status: {
+    status: status || {
       in: ['SALE', 'SOLD_OUT'],
     },
 
