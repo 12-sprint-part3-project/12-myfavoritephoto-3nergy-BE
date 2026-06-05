@@ -1,5 +1,10 @@
 import express from 'express';
-import { login, signup, refreshToken } from '../controllers/auth.controller.js';
+import {
+  login,
+  signup,
+  refreshToken,
+  logout,
+} from '../controllers/auth.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { signupSchema } from '../validators/auth.schema.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
@@ -78,6 +83,8 @@ router.post('/signup', validate(signupSchema), signup);
 router.post('/login', login);
 
 router.post('/refresh', refreshToken);
+
+router.post('/logout', logout);
 
 router.get('/test', authenticate, (req, res) => {
   res.json({

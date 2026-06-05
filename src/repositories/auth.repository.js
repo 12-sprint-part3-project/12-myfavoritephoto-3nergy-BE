@@ -47,7 +47,7 @@ export const createRefreshToken = async (userUuid, token, expiresAt) => {
 
 // refreshToken 으로 조회
 export const findRefreshToken = async (refreshToken) => {
-  return prisma.refreshToken.findFirst({
+  return prisma.refreshToken.findUnique({
     where: { token: refreshToken },
     include: {
       user: true,
@@ -57,14 +57,11 @@ export const findRefreshToken = async (refreshToken) => {
 
 // 사용자 refresh token 삭제
 export const deleteRefreshToken = async (refreshToken) => {
+  // delete()는 토큰이 존재하지 않으면 에러가 발생하므로
+  // 로그아웃 시 안전하게 처리하기 위해 deleteMany() 사용
   return prisma.refreshToken.deleteMany({
     where: { token: refreshToken },
   });
-};
-
-// 사용자 Refresh Token 갱신
-export const updateRefreshToken = async (uuid, refreshToken) => {
-  return prisma.user.update({});
 };
 
 // Google ID로 사용자 조회
