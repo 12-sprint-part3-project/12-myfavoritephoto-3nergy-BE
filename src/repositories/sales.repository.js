@@ -16,26 +16,7 @@ export const findSalesList = async ({
       in: ['SALE', 'SOLD_OUT'],
     },
 
-    photocard: {
-      ...(grade && { grade }),
-      ...(genre && { genre }),
-      ...(keyword && {
-        OR: [
-          {
-            name: {
-              contains: keyword,
-              mode: 'insensitive',
-            },
-          },
-          {
-            description: {
-              contains: keyword,
-              mode: 'insensitive',
-            },
-          },
-        ],
-      }),
-    },
+    photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
   const orderByMap = {

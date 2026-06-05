@@ -1,3 +1,4 @@
+import { buildPhotocardFilter } from '../lib/buildPhotocardFilter.js';
 import prisma from '../lib/prisma.js';
 
 export const findCardsList = async ({
@@ -15,26 +16,7 @@ export const findCardsList = async ({
     ownerUuid: userUuid,
     status: 'OWNED',
 
-    photocard: {
-      ...(grade && { grade }),
-      ...(genre && { genre }),
-      ...(keyword && {
-        OR: [
-          {
-            name: {
-              contains: keyword,
-              mode: 'insensitive',
-            },
-          },
-          {
-            description: {
-              contains: keyword,
-              mode: 'insensitive',
-            },
-          },
-        ],
-      }),
-    },
+    photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
   const orderByMap = {
