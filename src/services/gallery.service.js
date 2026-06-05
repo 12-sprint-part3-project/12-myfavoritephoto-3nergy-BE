@@ -3,20 +3,20 @@ import { findCardsList } from '../repositories/gallery.repository.js';
 export const getCardsList = async (query) => {
   const cardsList = await findCardsList(query);
 
-  const items = cardsList.map((sale) => ({
-    saleId: sale.id,
-    price: sale.price,
-    quantity: sale.quantity,
-    remainingQuantity: sale.remainingQuantity,
-    status: sale.status,
-    createdAt: sale.createdAt,
-    photocard: sale.photocard,
-    seller: sale.seller,
+  const photocards = cardsList.map((card) => ({
+    id: card.photocard.id,
+    name: card.photocard.name,
+    imageUrl: card.photocard.imageUrl,
+    grade: card.photocard.grade,
+    genre: card.photocard.genre,
+    price: card.photocard.price,
+    quantity: 1,
+    creatorNickname: card.photocard.creator.nickname,
   }));
 
   return {
     data: {
-      items,
+      photocards,
     },
     meta: {
       page: Number(query.page) || 1,
