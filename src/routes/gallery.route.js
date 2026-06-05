@@ -1,5 +1,6 @@
 import express from 'express';
 import { getCards } from '../controllers/gallery.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -7,6 +8,8 @@ const router = express.Router();
  * @swagger
  * /api/gallery:
  *   get:
+ *     security:
+ *       - bearerAuth: []
  *     summary: 보유 목록 조회
  *     description: 마이 갤러리에 등록된 보유 포토카드 목록을 조회합니다.
  *     tags:
@@ -62,6 +65,6 @@ const router = express.Router();
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/', getCards);
+router.get('/', authenticate, getCards);
 
 export default router;

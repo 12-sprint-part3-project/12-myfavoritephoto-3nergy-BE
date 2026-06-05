@@ -2,11 +2,14 @@ import { getCardsList } from '../services/gallery.service.js';
 
 export const getCards = async (req, res, next) => {
   try {
-    const result = await getCardsList(req.query);
+    const result = await getCardsList({
+      userUuid: req.user.userUuid,
+      ...req.uery,
+    });
 
     return res.status(200).json({
       success: true,
-      message: '보유 목록 조회에 성공했습니다.',
+      message: '내 포토카드 목록을 조회했습니다.',
       data: result.data,
       meta: result.meta,
       error: null,
