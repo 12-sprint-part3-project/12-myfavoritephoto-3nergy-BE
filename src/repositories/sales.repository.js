@@ -1,12 +1,17 @@
 import prisma from '../lib/prisma.js';
 
-export const findSalesList = async ({ page, pageSize }) => {
+export const findSalesList = async ({ page, pageSize, grade }) => {
   const skip = (page - 1) * pageSize;
 
   const where = {
     status: {
       in: ['SALE', 'SOLD_OUT'],
     },
+    ...(grade && {
+      photocard: {
+        grade,
+      },
+    }),
   };
 
   const [salesList, totalCount] = await Promise.all([

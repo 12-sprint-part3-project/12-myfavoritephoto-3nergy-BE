@@ -7,6 +7,7 @@ export const getSalesList = async (query) => {
   const { salesList, totalCount } = await findSalesList({
     page,
     pageSize,
+    grade: query.grade,
   });
 
   const items = salesList.map((sale) => ({
