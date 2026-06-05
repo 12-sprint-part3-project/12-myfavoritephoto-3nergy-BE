@@ -25,11 +25,47 @@ export const createUser = async (userData) => {
   });
 };
 
-// ID로 사용자 조회
-export const findUserById = async (id) => {};
+// uuid로 사용자 조회
+export const findUserByUuid = async (uuid) => {
+  return prisma.user.findUnique({
+    where: {
+      uuid,
+    },
+  });
+};
+
+// 사용자 Refresh Token 생성
+export const createRefreshToken = async (userUuid, token, expiresAt) => {
+  return prisma.refreshToken.create({
+    data: {
+      userUuid,
+      token,
+      expiresAt,
+    },
+  });
+};
+
+// refreshToken 으로 조회
+export const findRefreshToken = async (refreshToken) => {
+  return prisma.refreshToken.findFirst({
+    where: { token: refreshToken },
+    include: {
+      user: true,
+    },
+  });
+};
+
+// 사용자 refresh token 삭제
+export const deleteRefreshToken = async (refreshToken) => {
+  return prisma.refreshToken.deleteMany({
+    where: { token: refreshToken },
+  });
+};
 
 // 사용자 Refresh Token 갱신
-export const updateRefreshToken = async (userId, refreshToken) => {};
+export const updateRefreshToken = async (uuid, refreshToken) => {
+  return prisma.user.update({});
+};
 
 // Google ID로 사용자 조회
 export const findUserByGoogleId = async (googleId) => {};
