@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import authRouter from './routes/auth.route.js';
 import salesRouter from './routes/sales.route.js';
+import galleryRouter from './routes/gallery.route.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
@@ -16,6 +17,7 @@ app.use(cookieParser());
 
 app.use('/api/auth', authRouter);
 app.use('/api/sales', salesRouter);
+app.use('/api/gallery', galleryRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // test route
