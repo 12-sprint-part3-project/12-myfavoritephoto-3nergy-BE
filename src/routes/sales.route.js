@@ -1,5 +1,7 @@
 import express from 'express';
 import { getSales } from '../controllers/sales.controller.js';
+import { validateQuery } from '../middlewares/validate.middleware.js';
+import { getSalesListQuerySchema } from '../validators/sale.schema.js';
 
 const router = express.Router();
 
@@ -37,8 +39,9 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           enum: [SALE, SOLD_OUT]
+ *           default: ALL
  *         required: false
- *         description: 판매 상태 필터. 미입력 시 SALE, SOLD_OUT 전체 조회
+ *         description: 판매 상태 필터
  *       - in: query
  *         name: sort
  *         schema:
@@ -69,6 +72,6 @@ const router = express.Router();
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/', getSales);
+router.get('/', validateQuery(getSalesListQuerySchema), getSales);
 
 export default router;

@@ -15,3 +15,18 @@ export const validate = (schema) => {
     next();
   };
 };
+
+export const validateQuery = (schema) => {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.body);
+
+    if (!result.success) {
+      const message = result.error.issues[0].message;
+
+      return next(AppError({ ...ERROR_CODES.INVALID_INPUT, message }));
+    }
+
+    req.body = result.data;
+    next();
+  };
+};
