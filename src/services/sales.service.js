@@ -1,7 +1,7 @@
 import { findSalesList } from '../repositories/sales.repository.js';
 
 export const getSalesList = async (query) => {
-  const saleList = await findSalesList(query);
+  const salesList = await findSalesList(query);
 
   return {
     data: {

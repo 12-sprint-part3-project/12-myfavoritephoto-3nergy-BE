@@ -8,10 +8,10 @@ export const findSalesList = async () => {
       },
     },
     orderBy: {
+      createdAt: 'desc',
+    },
+    include: {
       photocard: {
-        createAt: 'desc',
-      },
-      include: {
         select: {
           id: true,
           name: true,
@@ -20,6 +20,7 @@ export const findSalesList = async () => {
           genre: true,
         },
       },
+
       seller: {
         select: {
           uuid: true,
