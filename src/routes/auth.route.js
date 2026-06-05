@@ -82,8 +82,50 @@ router.post('/signup', validate(signupSchema), signup);
  */
 router.post('/login', login);
 
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Access Token 재발급
+ *     description: HttpOnly Cookie에 저장된 Refresh Token을 검증하고 새로운 Access Token과 Refresh Token을 발급합니다.
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       200:
+ *         description: Access Token 재발급 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *       401:
+ *         description: Refresh Token이 없거나, 유효하지 않거나, 만료된 경우
+ */
 router.post('/refresh', refreshToken);
 
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: 로그아웃
+ *     description: HttpOnly Cookie에 저장된 Refresh Token을 DB에서 삭제하고 쿠키를 제거합니다.
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       200:
+ *         description: 로그아웃 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 로그아웃 되었습니다.
+ */
 router.post('/logout', logout);
 
 router.get('/test', authenticate, (req, res) => {
