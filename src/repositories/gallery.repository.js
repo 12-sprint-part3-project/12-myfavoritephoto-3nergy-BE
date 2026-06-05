@@ -1,30 +1,22 @@
 import prisma from '../lib/prisma.js';
 
-export const findCardsList = async () => {
-  return prisma.sale.findMany({
+export const findCardsList = async ({ userUuid }) => {
+  return prisma.userPhotocard.findMany({
     where: {
-      status: {
-        in: ['SALE', 'SOLD_OUT'],
-      },
+      ownerUuid: userUuid,
+      status: 'OWNED',
     },
     orderBy: {
       createdAt: 'desc',
     },
     include: {
       photocard: {
-        select: {
-          id: true,
-          name: true,
-          imageUrl: true,
-          grade: true,
-          genre: true,
-        },
-      },
-
-      seller: {
-        select: {
-          uuid: true,
-          nickname: true,
+        include: {
+          creator: {
+            select: {
+              nickname: true,
+            },
+          },
         },
       },
     },
