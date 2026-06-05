@@ -94,19 +94,36 @@ async function main() {
 
       const isSaleTarget = cardIndex <= 6;
 
-      await prisma.userPhotocard.create({
-        data: {
-          photocardId: photocard.id,
-          ownerUuid: user.uuid,
-          serialNumber: 1,
-          status: isSaleTarget
-            ? 'ON_SALE'
-            : cardIndex % 2 === 0
-              ? 'TRADE_PENDING'
-              : 'OWNED',
-          acquiredAt: new Date(),
-        },
-      });
+      const status = isSaleTarget
+        ? 'ON_SALE'
+        : cardIndex % 2 === 0
+          ? 'TRADE_PENDING'
+          : 'OWNED';
+
+      const userPhotocardQuantity =
+        status === 'OWNED'
+          ? cardIndex % 3 === 1
+            ? 3
+            : cardIndex % 3 === 2
+              ? 2
+              : 1
+          : 1;
+
+      for (
+        let serialNumber = 1;
+        serialNumber <= userPhotocardQuantity;
+        serialNumber++
+      ) {
+        await prisma.userPhotocard.create({
+          data: {
+            photocardId: photocard.id,
+            ownerUuid: user.uuid,
+            serialNumber,
+            status,
+            acquiredAt: new Date(),
+          },
+        });
+      }
 
       if (isSaleTarget) {
         const status = saleStatuses[(globalIndex - 1) % saleStatuses.length];
