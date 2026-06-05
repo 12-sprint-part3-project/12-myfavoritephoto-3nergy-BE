@@ -17,7 +17,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         required: false
- *         description: 포토카드 이름 검색어
+ *         description: 포토카드 이름 및 설명 검색어
  *       - in: query
  *         name: grade
  *         schema:

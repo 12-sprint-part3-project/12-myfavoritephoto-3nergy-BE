@@ -18,10 +18,20 @@ export const findSalesList = async ({
       ...(grade && { grade }),
       ...(genre && { genre }),
       ...(keyword && {
-        name: {
-          contains: keyword,
-          mode: 'insensitive',
-        },
+        OR: [
+          {
+            name: {
+              contains: keyword,
+              mode: 'insensitive',
+            },
+          },
+          {
+            description: {
+              contains: keyword,
+              mode: 'insensitive',
+            },
+          },
+        ],
       }),
     },
   };
@@ -42,6 +52,7 @@ export const findSalesList = async ({
             imageUrl: true,
             grade: true,
             genre: true,
+            description: true,
           },
         },
 
