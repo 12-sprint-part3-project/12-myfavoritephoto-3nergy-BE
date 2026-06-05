@@ -1,7 +1,13 @@
 import { findSalesList } from '../repositories/sales.repository.js';
 
 export const getSalesList = async (query) => {
-  const salesList = await findSalesList(query);
+  const page = Number(query.page) || 1;
+  const pageSize = Number(query.pageSize) || 20;
+
+  const { salesList, totalCount } = await findSalesList({
+    page,
+    pageSize,
+  });
 
   const items = salesList.map((sale) => ({
     saleId: sale.id,
@@ -14,17 +20,18 @@ export const getSalesList = async (query) => {
     seller: sale.seller,
   }));
 
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   return {
     data: {
       items,
     },
     meta: {
-      page: Number(query.page) || 1,
-      pageSize: Number(query.pageSize) || 20,
-      totalCount: salesList.length,
-      totalPages: 1,
-      hasNextPage: false,
+      page,
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage: page < totalPages,
     },
   };
 };
-0;

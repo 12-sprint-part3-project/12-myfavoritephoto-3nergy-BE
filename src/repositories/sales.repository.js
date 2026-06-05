@@ -1,32 +1,46 @@
 import prisma from '../lib/prisma.js';
 
-export const findSalesList = async () => {
-  return prisma.sale.findMany({
-    where: {
-      status: {
-        in: ['SALE', 'SOLD_OUT'],
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    include: {
-      photocard: {
-        select: {
-          id: true,
-          name: true,
-          imageUrl: true,
-          grade: true,
-          genre: true,
-        },
-      },
+export const findSalesList = async ({ page, pageSize }) => {
+  const skip = (page - 1) * pageSize;
 
-      seller: {
-        select: {
-          uuid: true,
-          nickname: true,
+  const where = {
+    status: {
+      in: ['SALE', 'SOLD_OUT'],
+    },
+  };
+
+  const [salesList, totalCount] = await Promise.all([
+    prisma.sale.findMany({
+      where,
+      skip,
+      take: pageSize,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        photocard: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            grade: true,
+            genre: true,
+          },
+        },
+
+        seller: {
+          select: {
+            uuid: true,
+            nickname: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.sale.count({ where }),
+  ]);
+
+  return {
+    salesList,
+    totalCount,
+  };
 };
