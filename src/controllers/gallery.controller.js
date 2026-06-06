@@ -6,7 +6,7 @@ export const getCards = async (req, res, next) => {
       userUuid: req.user.userUuid,
       ...req.query,
     });
-
+    console.log('req.user:', req.user);
     return res.status(200).json({
       success: true,
       message: '내 포토카드 목록을 조회했습니다.',

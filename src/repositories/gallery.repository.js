@@ -52,13 +52,13 @@ export const findCardsList = async ({
             imageUrl: true,
             grade: true,
             genre: true,
-            description: true,
             price: true,
-            creator: {
-              select: {
-                nickname: true,
-              },
-            },
+            description: true,
+          },
+        },
+        owner: {
+          select: {
+            nickname: true,
           },
         },
       },
@@ -68,6 +68,6 @@ export const findCardsList = async ({
 
   return {
     cardsList,
-    totalCount: cardsList.length,
+    totalCount,
   };
 };

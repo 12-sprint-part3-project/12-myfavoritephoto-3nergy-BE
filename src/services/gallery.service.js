@@ -5,6 +5,7 @@ export const getCardsList = async (query) => {
   const pageSize = Number(query.pageSize) || 20;
 
   const { cardsList } = await findCardsList({
+    userUuid: query.userUuid,
     page,
     pageSize,
     grade: query.grade,
@@ -28,7 +29,7 @@ export const getCardsList = async (query) => {
         price: photocard.price,
         description: photocard.description,
         quantity: 0,
-        creatorNickname: photocard.creator.nickname,
+        ownerNickname: card.owner.nickname,
       });
     }
 
