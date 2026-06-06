@@ -14,6 +14,8 @@ const router = express.Router();
  *     description: 마켓플레이스에 등록된 판매 포토카드 목록을 조회합니다.
  *     tags:
  *       - Marketplace
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: keyword
