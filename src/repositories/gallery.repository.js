@@ -1,21 +1,20 @@
 import { buildPhotocardFilter } from '../lib/buildPhotocardFilter.js';
 import prisma from '../lib/prisma.js';
 
-export const findSalesList = async ({
+export const findCardsList = async ({
+  userUuid,
   page,
   pageSize,
   grade,
   genre,
   keyword,
-  status,
   sort,
 }) => {
   const skip = (page - 1) * pageSize;
 
   const where = {
-    status: status || {
-      in: ['SALE', 'SOLD_OUT'],
-    },
+    ownerUuid: userUuid,
+    status: 'OWNED',
 
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
@@ -23,16 +22,24 @@ export const findSalesList = async ({
   const orderByMap = {
     latest: { createdAt: 'desc' },
     oldest: { createdAt: 'asc' },
-    price_asc: { price: 'asc' },
-    price_desc: { price: 'desc' },
+    price_asc: {
+      photocard: {
+        price: 'asc',
+      },
+    },
+    price_desc: {
+      photocard: {
+        price: 'desc',
+      },
+    },
   };
 
   const orderBy = orderByMap[sort] || {
     createdAt: 'desc',
   };
 
-  const [salesList, totalCount] = await Promise.all([
-    prisma.sale.findMany({
+  const [cardsList, totalCount] = await Promise.all([
+    prisma.userPhotocard.findMany({
       where,
       skip,
       take: pageSize,
@@ -45,23 +52,22 @@ export const findSalesList = async ({
             imageUrl: true,
             grade: true,
             genre: true,
+            price: true,
             description: true,
           },
         },
-
-        seller: {
+        owner: {
           select: {
-            uuid: true,
             nickname: true,
           },
         },
       },
     }),
-    prisma.sale.count({ where }),
+    prisma.userPhotocard.count({ where }),
   ]);
 
   return {
-    salesList,
+    cardsList,
     totalCount,
   };
 };

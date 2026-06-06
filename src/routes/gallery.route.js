@@ -1,21 +1,21 @@
 import express from 'express';
-import { getSales } from '../controllers/sales.controller.js';
+import { getCards } from '../controllers/gallery.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validateQuery } from '../middlewares/validate.middleware.js';
-import { getSalesListQuerySchema } from '../validators/photocard.schema.js';
+import { getGalleryListQuerySchema } from '../validators/photocard.schema.js';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/sales:
+ * /api/gallery:
  *   get:
- *     summary: 판매 목록 조회
- *     description: 마켓플레이스에 등록된 판매 포토카드 목록을 조회합니다.
- *     tags:
- *       - Marketplace
  *     security:
  *       - bearerAuth: []
+ *     summary: 보유 목록 조회
+ *     description: 마이 갤러리에 등록된 보유 포토카드 목록을 조회합니다.
+ *     tags:
+ *       - MyGallery
  *     parameters:
  *       - in: query
  *         name: keyword
@@ -37,13 +37,6 @@ const router = express.Router();
  *           enum: [album, special, landscape, season_greeting, fan_meeting, concert, md, collage, branding, etc]
  *         required: false
  *         description: 장르 필터
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [SALE, SOLD_OUT]
- *         required: false
- *         description: 판매 상태 필터, 미입력 시 전체 조회"
  *       - in: query
  *         name: sort
  *         schema:
@@ -74,6 +67,11 @@ const router = express.Router();
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
+router.get(
+  '/',
+  authenticate,
+  validateQuery(getGalleryListQuerySchema),
+  getCards,
+);
 
 export default router;
