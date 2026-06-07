@@ -1,4 +1,9 @@
-import { findSalesList } from '../repositories/sales.repository.js';
+import {
+  findSalesList,
+  findSaleDetail,
+} from '../repositories/sales.repository.js';
+import { AppError } from '../errors/AppError.js';
+import { ERROR_CODES } from '../constants/errorCodes.js';
 
 export const getSalesList = async (query) => {
   const page = Number(query.page) || 1;
@@ -39,4 +44,14 @@ export const getSalesList = async (query) => {
       hasNextPage: page < totalPages,
     },
   };
+};
+
+export const getSaleDetail = async (saleId) => {
+  const sale = await findSaleDetail(Number(saleId));
+
+  if (!sale) {
+    throw AppError(ERROR_CODES.SALE_NOT_FOUND);
+  }
+
+  return sale;
 };

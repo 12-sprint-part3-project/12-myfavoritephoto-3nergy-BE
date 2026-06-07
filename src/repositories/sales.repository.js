@@ -65,3 +65,30 @@ export const findSalesList = async ({
     totalCount,
   };
 };
+
+export const findSaleDetail = async (saleId) => {
+  return prisma.sale.findUnique({
+    where: {
+      id: saleId,
+    },
+
+    include: {
+      photocard: {
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          grade: true,
+          genre: true,
+          description: true,
+        },
+      },
+      seller: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
+    },
+  });
+};
