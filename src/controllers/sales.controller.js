@@ -1,4 +1,7 @@
-import { getSalesList } from '../services/sales.service.js';
+import {
+  getSalesList,
+  getSaleDetail as getSaleDetailService,
+} from '../services/sales.service.js';
 
 export const getSales = async (req, res, next) => {
   try {
@@ -18,16 +21,14 @@ export const getSales = async (req, res, next) => {
 
 export const getSaleDetail = async (req, res, next) => {
   try {
-    const { slaeId } = req.params;
+    const { saleId } = req.params;
 
-    const sale = await getSaleDetail(Number(saleId));
+    const sale = await getSaleDetailService(Number(saleId));
 
     return res.status(200).json({
       success: true,
       message: '판매 상세 조회에 성공했습니다.',
-      data: {
-        sale,
-      },
+      data: result.data,
       error: null,
     });
   } catch (error) {

@@ -53,5 +53,35 @@ export const getSaleDetail = async (saleId) => {
     throw AppError(ERROR_CODES.SALE_NOT_FOUND);
   }
 
-  return sale;
+  return {
+    data: {
+      sale: {
+        saleId: sale.id,
+        price: sale.price,
+        quantity: sale.quantity,
+        remainingQuantity: sale.remainingQuantity,
+        status: sale.status,
+        createdAt: sale.createdAt,
+        updatedAt: sale.updatedAt,
+
+        photocard: {
+          id: sale.photocard.id,
+          name: sale.photocard.name,
+          imageUrl: sale.photocard.imageUrl,
+          description: sale.photocard.description,
+          grade: sale.photocard.grade,
+          genre: sale.photocard.genre,
+        },
+
+        seller: {
+          uuid: sale.seller.uuid,
+          nickname: sale.seller.nickname,
+        },
+
+        desiredGrade: sale.desiredGrade,
+        desiredGenre: sale.desiredGenre,
+        desiredDescription: sale.desiredDescription,
+      },
+    },
+  };
 };
