@@ -15,3 +15,5 @@ export const getSales = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getSaleDetail = async () => {};
