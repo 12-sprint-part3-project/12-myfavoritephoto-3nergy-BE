@@ -23,7 +23,7 @@ export const getSaleDetail = async (req, res, next) => {
   try {
     const { saleId } = req.params;
 
-    const sale = await getSaleDetailService(Number(saleId));
+    const result = await getSaleDetailService(Number(saleId));
 
     return res.status(200).json({
       success: true,
