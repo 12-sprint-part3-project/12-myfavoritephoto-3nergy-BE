@@ -62,13 +62,13 @@ export const logout = async (req, res, next) => {
   }
 };
 
-export const refreshToken = async (req, res, next) => {
+export const refreshAccessToken = async (req, res, next) => {
   try {
-    const refreshToken = req.cookies?.refreshToken;
+    const refreshTokenValue = req.cookies?.refreshToken;
 
     // 기존 Refresh Token 검증 후 새 Access Token, Refresh Token 발급
     const { accessToken, refreshToken: newRefreshToken } =
-      await refreshTokenUser(refreshToken);
+      await refreshTokenUser(refreshTokenValue);
 
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
