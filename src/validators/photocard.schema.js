@@ -57,3 +57,19 @@ export const getSalesListQuerySchema = z.object({
 export const getGalleryListQuerySchema = z.object({
   ...photocardQueryFields,
 });
+
+export const getMySalesQuerySchema = z.object({
+  ...photocardQueryFields,
+
+  saleMethod: z
+    .enum(['SALE', 'TRADE'], {
+      message: '올바르지 않은 판매 방법입니다.',
+    })
+    .optional(),
+
+  isSoldOut: z
+    .enum(['true', 'false'], {
+      message: '올바르지 않은 매진 여부입니다.',
+    })
+    .optional(),
+});

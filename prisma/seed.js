@@ -21,13 +21,13 @@ const genres = [
 const saleStatuses = [
   'SALE',
   'SALE',
-  'SALE',
-  'SALE',
+  'SOLD_OUT',
   'SALE',
   'SALE',
   'SOLD_OUT',
+  'SALE',
   'SOLD_OUT',
-  'SOLD_OUT',
+  'SALE',
   'CANCELED',
 ];
 
@@ -52,6 +52,8 @@ async function main() {
   const passwordHash = await bcrypt.hash('Password1234!', 10);
 
   const users = [];
+  const sales = [];
+  const tradePendingCards = [];
 
   for (let i = 1; i <= 10; i++) {
     const user = await prisma.user.create({
@@ -61,9 +63,7 @@ async function main() {
         nickname: `유저${i}`,
         provider: 'LOCAL',
         point: {
-          create: {
-            balance: 100000,
-          },
+          create: { balance: 100000 },
         },
       },
     });
@@ -94,14 +94,14 @@ async function main() {
 
       const isSaleTarget = cardIndex <= 6;
 
-      const status = isSaleTarget
+      const userPhotocardStatus = isSaleTarget
         ? 'ON_SALE'
         : cardIndex % 2 === 0
           ? 'TRADE_PENDING'
           : 'OWNED';
 
       const userPhotocardQuantity =
-        status === 'OWNED'
+        userPhotocardStatus === 'OWNED'
           ? cardIndex % 3 === 1
             ? 3
             : cardIndex % 3 === 2
@@ -114,39 +114,76 @@ async function main() {
         serialNumber <= userPhotocardQuantity;
         serialNumber++
       ) {
-        await prisma.userPhotocard.create({
+        const userPhotocard = await prisma.userPhotocard.create({
           data: {
             photocardId: photocard.id,
             ownerUuid: user.uuid,
             serialNumber,
-            status,
+            status: userPhotocardStatus,
             acquiredAt: new Date(),
           },
         });
+
+        if (userPhotocardStatus === 'TRADE_PENDING') {
+          tradePendingCards.push({
+            userPhotocard,
+            owner: user,
+          });
+        }
       }
 
       if (isSaleTarget) {
-        const status = saleStatuses[(globalIndex - 1) % saleStatuses.length];
+        const saleStatus =
+          cardIndex === 3 || cardIndex === 6 ? 'SOLD_OUT' : 'SALE';
+
         const quantity = 5;
 
-        await prisma.sale.create({
+        const sale = await prisma.sale.create({
           data: {
             userUuid: user.uuid,
             photocardId: photocard.id,
             price: photocard.price,
             quantity,
             remainingQuantity:
-              status === 'SOLD_OUT'
+              saleStatus === 'SOLD_OUT'
                 ? 0
                 : Math.max(1, quantity - (globalIndex % quantity)),
-            status,
+            status: saleStatus,
             desiredGrade: grades[globalIndex % grades.length],
             desiredGenre: genres[globalIndex % genres.length],
             desiredDescription: '교환 희망 조건입니다.',
           },
         });
+
+        if (saleStatus === 'SALE') {
+          sales.push({
+            sale,
+            seller: user,
+          });
+        }
       }
     }
+  }
+
+  for (let i = 0; i < tradePendingCards.length; i++) {
+    const proposer = tradePendingCards[i].owner;
+    const offeredCard = tradePendingCards[i].userPhotocard;
+
+    const targetSale = sales.find(
+      ({ seller }) => seller.uuid !== proposer.uuid,
+    );
+
+    if (!targetSale) continue;
+
+    await prisma.trade.create({
+      data: {
+        proposerUuid: proposer.uuid,
+        receiverUuid: targetSale.seller.uuid,
+        saleId: targetSale.sale.id,
+        offeredCardId: offeredCard.id,
+        status: 'PENDING',
+      },
+    });
   }
 
   console.log('Seed 완료');

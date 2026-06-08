@@ -6,7 +6,10 @@ import {
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validateQuery } from '../middlewares/validate.middleware.js';
-import { getSalesListQuerySchema } from '../validators/photocard.schema.js';
+import {
+  getSalesListQuerySchema,
+  getMySalesQuerySchema,
+} from '../validators/photocard.schema.js';
 
 const router = express.Router();
 
@@ -85,7 +88,7 @@ router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
  * /api/sales/me:
  *   get:
  *     summary: 나의 판매 카드 목록 조회
- *     description: 마켓플레이스에 등록된 나의 판매 포토카드 목록을 조회합니다.
+ *     description: 로그인한 사용자의 판매 카드와 교환 제안 대기 중인 카드를 조회합니다.
  *     tags:
  *       - Sales
  *     security:
@@ -116,11 +119,13 @@ router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
  *         schema:
  *           type: string
  *           enum: [SALE, TRADE]
+ *         required: false
  *         description: 판매 방법 필터
  *       - in: query
  *         name: isSoldOut
  *         schema:
  *           type: boolean
+ *         required: false
  *         description: 매진 여부
  *       - in: query
  *         name: sort
@@ -133,20 +138,70 @@ router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
  *       - in: query
  *         name: page
  *         schema:
- *           type: number
+ *           type: integer
  *           default: 1
  *         required: false
  *         description: 페이지 번호
  *       - in: query
  *         name: pageSize
  *         schema:
- *           type: number
+ *           type: integer
  *           default: 20
  *         required: false
  *         description: 페이지당 조회 개수
  *     responses:
  *       200:
- *         description: 나의 판매 목록 조회 성공
+ *         description: 나의 판매 카드 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: 나의 판매 조회에 성공했습니다.
+ *               data:
+ *                 gradeCounts:
+ *                   - grade: common
+ *                     count: 4
+ *                   - grade: rare
+ *                     count: 1
+ *                   - grade: super_rare
+ *                     count: 0
+ *                   - grade: legendary
+ *                     count: 2
+ *                 mySales:
+ *                   - id: 1
+ *                     name: 테스트 포토카드 1
+ *                     imageUrl: https://picsum.photos/seed/photocard-1/400/600
+ *                     grade: common
+ *                     genre: album
+ *                     price: 1100
+ *                     remainingQuantity: 4
+ *                     nickname: 유저1
+ *                     displayStatus: SALE
+ *                   - id: 3
+ *                     name: 테스트 포토카드 3
+ *                     imageUrl: https://picsum.photos/seed/photocard-3/400/600
+ *                     grade: super_rare
+ *                     genre: landscape
+ *                     price: 1300
+ *                     remainingQuantity: 0
+ *                     nickname: 유저1
+ *                     displayStatus: SOLD_OUT
+ *                   - id: 7
+ *                     name: 테스트 포토카드 8
+ *                     imageUrl: https://picsum.photos/seed/photocard-8/400/600
+ *                     grade: legendary
+ *                     genre: concert
+ *                     price: 1800
+ *                     remainingQuantity: 1
+ *                     nickname: 유저1
+ *                     displayStatus: TRADE_PENDING
+ *               meta:
+ *                 page: 1
+ *                 pageSize: 20
+ *                 totalCount: 7
+ *                 totalPages: 1
+ *                 hasNextPage: false
+ *               error: null
  *       400:
  *         description: 입력값 검증 실패
  *       401:
@@ -154,7 +209,12 @@ router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/me', authenticate, getMySales);
+router.get(
+  '/me',
+  authenticate,
+  validateQuery(getMySalesQuerySchema),
+  getMySales,
+);
 
 /**
  * @swagger

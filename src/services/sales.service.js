@@ -92,7 +92,7 @@ export const getMySales = async (query) => {
     createdAt: trade.createdAt,
   }));
 
-  const combinedMySales = [...saleCards, ...tradePendingCards];
+  const combinedMySales = [...mySales, ...tradePendingCards];
 
   let filteredMySales = combinedMySales;
 

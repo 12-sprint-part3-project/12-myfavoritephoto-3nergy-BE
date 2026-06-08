@@ -24,7 +24,7 @@ export const getMySales = async (req, res, next) => {
   try {
     const result = await getMySalesService({
       userUuid: req.user.userId,
-      ...req.query,
+      ...req.validatedQuery,
     });
 
     return res.status(200).json({
