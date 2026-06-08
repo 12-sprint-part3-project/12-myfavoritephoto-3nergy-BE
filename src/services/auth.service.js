@@ -1,15 +1,18 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {
-  createUser,
-  findeUserByNickname,
+  createUserWithPoint,
+  findUserByNickname,
   findUserByEmail,
   createRefreshToken,
   findRefreshToken,
   deleteRefreshToken,
+  findUserByGoogleId,
 } from '../repositories/auth.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
+import axios from 'axios';
+import { email } from 'zod';
 
 const REFRESH_TOKEN_EXPIRES_DAYS = 7;
 
@@ -20,7 +23,7 @@ export const signupUser = async ({ email, password, nickname }) => {
     throw AppError(ERROR_CODES.EMAIL_ALREADY_EXISTS);
   }
 
-  const existingNicknameUser = await findeUserByNickname(nickname);
+  const existingNicknameUser = await findUserByNickname(nickname);
 
   if (existingNicknameUser) {
     throw AppError(ERROR_CODES.NICKNAME_ALREADY_EXISTS);
@@ -28,7 +31,7 @@ export const signupUser = async ({ email, password, nickname }) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const user = await createUser({
+  const user = await createUserWithPoint({
     email,
     nickname,
     passwordHash,
@@ -179,7 +182,118 @@ export const refreshTokenUser = async (refreshToken) => {
 // refreshToken 만료일 계산
 const getRefreshTokenExpiresAt = () => {
   const expiresAt = new Date();
-  //
+
   expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS);
   return expiresAt;
+};
+
+//  Google 로그인  URL 생성
+export const getGoogleLoginUrl = () => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_REDIRECT_URI) {
+    throw AppError(ERROR_CODES.GOOGLE_CONFIG_MISSING);
+  }
+
+  const baseUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'openid email profile',
+  });
+
+  return `${baseUrl}?${params.toString()}`;
+};
+
+// Google OAuth 인증 완료 후 전달받은 Authorization Code를 이용해
+// Google Access Token을 발급받고 사용자 정보를 조회
+export const googleCallback = async (code) => {
+  // Google Callback에 code가 없는경우
+  if (!code) {
+    throw AppError(ERROR_CODES.INVALID_GOOGLE_CODE);
+  }
+
+  let googleUser;
+
+  // Google 사용자 정보 조회
+  try {
+    // 1. code로 Google Access Token 요청
+    const tokenResponse = await axios.post(
+      'https://oauth2.googleapis.com/token',
+      new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+        grant_type: 'authorization_code',
+      }),
+    );
+
+    const googleAccessToken = tokenResponse.data.access_token;
+    // 2. Google 사용자 정보 요청
+    const userInfoResponse = await axios.get(
+      'https://www.googleapis.com/oauth2/v3/userinfo',
+      {
+        headers: {
+          Authorization: `Bearer ${googleAccessToken}`,
+        },
+      },
+    );
+
+    googleUser = userInfoResponse.data;
+  } catch (error) {
+    throw AppError(ERROR_CODES.GOOGLE_AUTH_FAILED);
+  }
+
+  // 3. Google ID로 기존 회원 조회
+  let user = await findUserByGoogleId(googleUser.sub);
+
+  // 4. 기존 회원이 없으면 자동 회원가입 + 포인트 테이블
+  if (!user) {
+    const existingEmailUser = await findUserByEmail(googleUser.email);
+
+    if (existingEmailUser && existingEmailUser.provider !== 'GOOGLE') {
+      throw AppError(ERROR_CODES.EMAIL_ALREADY_EXISTS);
+    }
+
+    user = await createUserWithPoint({
+      email: googleUser.email,
+      nickname: `${googleUser.name}_${googleUser.sub.slice(-6)}`,
+      provider: 'GOOGLE',
+      providerId: googleUser.sub,
+    });
+  }
+
+  // 5. Access Token 발급
+  const accessToken = jwt.sign(
+    { userUuid: user.uuid },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
+    },
+  );
+
+  // 6. Refresh Token 발급
+  const refreshToken = jwt.sign(
+    { userUuid: user.uuid },
+    process.env.JWT_REFRESH_SECRET,
+    {
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+    },
+  );
+
+  // 7 . Refresh Token DB 저장
+  await createRefreshToken(user.uuid, refreshToken, getRefreshTokenExpiresAt());
+
+  // 8. 로그인 결과 반환
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      uuid: user.uuid,
+      email: user.email,
+      nickname: user.nickname,
+      provider: user.provider,
+    },
+  };
 };

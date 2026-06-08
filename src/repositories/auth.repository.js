@@ -10,7 +10,7 @@ export const findUserByEmail = async (email) => {
 };
 
 // 닉네임으로 사용자 조회
-export const findeUserByNickname = async (nickname) => {
+export const findUserByNickname = async (nickname) => {
   return prisma.user.findUnique({
     where: {
       nickname,
@@ -18,10 +18,21 @@ export const findeUserByNickname = async (nickname) => {
   });
 };
 
-// 사용자 생성
-export const createUser = async (userData) => {
-  return prisma.user.create({
-    data: userData,
+// 사용자 생성 + 포인트 테이블 생성
+export const createUserWithPoint = async (userData) => {
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: userData,
+    });
+
+    await tx.userPoint.create({
+      data: {
+        userUuid: user.uuid,
+        balance: 0,
+      },
+    });
+
+    return user;
   });
 };
 
@@ -77,4 +88,11 @@ export const deleteExpiredRefreshTokens = async () => {
 };
 
 // Google ID로 사용자 조회
-export const findUserByGoogleId = async (googleId) => {};
+export const findUserByGoogleId = async (googleId) => {
+  return prisma.user.findFirst({
+    where: {
+      provider: 'GOOGLE',
+      providerId: googleId,
+    },
+  });
+};

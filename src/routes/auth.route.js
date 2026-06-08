@@ -4,6 +4,8 @@ import {
   signup,
   refreshToken,
   logout,
+  googleLogin,
+  googleCallbackLogin,
 } from '../controllers/auth.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { signupSchema } from '../validators/auth.schema.js';
@@ -127,6 +129,66 @@ router.post('/refresh', refreshToken);
  *                   example: 로그아웃 되었습니다.
  */
 router.post('/logout', logout);
+/**
+ * @swagger
+ * /api/auth/google:
+ *   get:
+ *     summary: Google 로그인 페이지 이동
+ *     description: Google OAuth 로그인 페이지로 리다이렉트합니다.
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       302:
+ *         description: Google 로그인 페이지로 리다이렉트
+ */
+router.get('/google', googleLogin);
+/**
+ * @swagger
+ * /api/auth/google/callback:
+ *   get:
+ *     summary: Google 로그인 Callback 처리
+ *     description: Google OAuth 인증 완료 후 전달받은 code로 사용자 정보를 조회하고 로그인 또는 자동 회원가입을 처리합니다.
+ *     tags:
+ *       - Auth
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Google OAuth 인증 완료 후 전달받는 Authorization Code
+ *     responses:
+ *       200:
+ *         description: Google 로그인 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     uuid:
+ *                       type: string
+ *                       example: ef6c7d71-a26a-4261-934e-fcd721766b06
+ *                     email:
+ *                       type: string
+ *                       example: user@gmail.com
+ *                     nickname:
+ *                       type: string
+ *                       example: 테스터_855418
+ *                     provider:
+ *                       type: string
+ *                       example: GOOGLE
+ *       400:
+ *         description: Google Authorization Code가 없는 경우
+ *       401:
+ *         description: Google 인증 실패
+ */
+router.get('/google/callback', googleCallbackLogin);
 
 router.get('/test', authenticate, (req, res) => {
   res.json({
@@ -134,7 +196,5 @@ router.get('/test', authenticate, (req, res) => {
     user: req.user,
   });
 });
-
-console.log('auth route loaded');
 
 export default router;
