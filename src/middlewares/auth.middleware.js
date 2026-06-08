@@ -1,18 +1,18 @@
 import jwt from 'jsonwebtoken';
+import { AppError } from '../errors/AppError.js';
+import { ERROR_CODES } from '../constants/errorCodes.js';
 
 export const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({
-      message: '인증이 필요합니다.',
-    });
-  }
-
-  const token = authHeader.split(' ')[1];
-
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw AppError(ERROR_CODES.ACCESS_TOKEN_MISSING);
+    }
+
+    const accessToken = authHeader.split(' ')[1];
+
+    const payload = jwt.verify(accessToken, process.env.JWT_SECRET);
 
     req.user = {
       userId: payload.userUuid,
@@ -20,8 +20,14 @@ export const authenticate = (req, res, next) => {
 
     next();
   } catch (error) {
-    return res.status(401).json({
-      message: '유효하지 않은 토큰입니다.',
-    });
+    if (error.name === 'TokenExpiredError') {
+      return next(AppError(ERROR_CODES.ACCESS_TOKEN_EXPIRED));
+    }
+
+    if (error.name === 'JsonWebTokenError') {
+      return next(AppError(ERROR_CODES.INVALID_ACCESS_TOKEN));
+    }
+
+    next(error);
   }
 };

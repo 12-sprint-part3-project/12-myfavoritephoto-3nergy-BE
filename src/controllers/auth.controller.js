@@ -34,8 +34,13 @@ export const login = async (req, res, next) => {
     });
 
     return res.status(200).json({
-      accessToken,
-      user,
+      success: true,
+      message: '로그인에 성공했습니다.',
+      data: {
+        accessToken,
+        user,
+      },
+      error: null,
     });
   } catch (error) {
     next(error);
@@ -55,7 +60,10 @@ export const logout = async (req, res, next) => {
     });
 
     return res.status(200).json({
+      success: true,
       message: '로그아웃 되었습니다.',
+      data: null,
+      error: null,
     });
   } catch (error) {
     next(error);
@@ -78,7 +86,12 @@ export const refreshAccessToken = async (req, res, next) => {
     });
 
     return res.status(200).json({
-      accessToken,
+      success: true,
+      message: 'Access Token이 재발급되었습니다.',
+      data: {
+        accessToken,
+      },
+      error: null,
     });
   } catch (error) {
     next(error);
@@ -112,8 +125,13 @@ export const googleCallbackLogin = async (req, res, next) => {
     });
 
     return res.status(200).json({
-      accessToken,
-      user,
+      success: true,
+      message: '구글 로그인에 성공했습니다.',
+      data: {
+        accessToken,
+        user,
+      },
+      error: null,
     });
   } catch (error) {
     next(error);

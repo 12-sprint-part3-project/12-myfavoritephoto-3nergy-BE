@@ -36,15 +36,6 @@ export const createUserWithPoint = async (userData) => {
   });
 };
 
-// uuid로 사용자 조회
-export const findUserByUuid = async (uuid) => {
-  return prisma.user.findUnique({
-    where: {
-      uuid,
-    },
-  });
-};
-
 // 사용자 Refresh Token 생성
 export const createRefreshToken = async (userUuid, token, expiresAt) => {
   return prisma.refreshToken.create({
