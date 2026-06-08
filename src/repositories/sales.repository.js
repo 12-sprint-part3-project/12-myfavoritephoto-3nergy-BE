@@ -66,62 +66,52 @@ export const findSalesList = async ({
   };
 };
 
-export const findMySales = async ({
-  page,
-  pageSize,
-  userUuid,
-  grade,
-  genre,
-  keyword,
-  sort,
-}) => {
-  const skip = (page - 1) * pageSize;
-
+export const findMySales = async ({ userUuid, grade, genre, keyword }) => {
   const where = {
     userUuid,
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
-  const orderByMap = {
-    latest: {
-      createdAt: 'desc',
+  return prisma.sale.findMany({
+    where,
+    include: {
+      photocard: true,
+      seller: {
+        select: {
+          nickname: true,
+        },
+      },
     },
-    oldest: {
-      createdAt: 'asc',
-    },
-    price_asc: {
-      price: 'asc',
-    },
-    price_desc: {
-      price: 'desc',
-    },
-  };
+  });
+};
 
-  const orderBy = orderByMap[sort] || {
-    createdAt: 'desc',
-  };
-
-  const [mySalesList, totalCount] = await Promise.all([
-    prisma.sale.findMany({
-      where,
-      skip,
-      take: pageSize,
-      orderBy,
-      include: {
-        photocard: true,
-        seller: {
-          select: {
-            nickname: true,
+export const findMyPendingTrades = async ({
+  userUuid,
+  grade,
+  genre,
+  keyword,
+}) => {
+  return prisma.trade.findMany({
+    where: {
+      proposerUuid: userUuid,
+      status: 'PENDING',
+      offeredCard: {
+        photocard: buildPhotocardFilter({ grade, genre, keyword }),
+      },
+    },
+    include: {
+      offeredCard: {
+        include: {
+          photocard: true,
+          owner: {
+            select: {
+              nickname: true,
+            },
           },
         },
       },
-    }),
-    prisma.sale.count({ where }),
-  ]);
-  return {
-    mySalesList,
-    totalCount,
-  };
+    },
+  });
 };
 
 export const findSaleDetail = async (saleId) => {
