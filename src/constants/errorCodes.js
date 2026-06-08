@@ -190,4 +190,19 @@ export const ERROR_CODES = {
     code: 'INTERNAL_SERVER_ERROR',
     message: '서버 내부 오류가 발생했습니다.',
   },
+
+  // =========================
+  // Google
+  // =========================
+
+  GOOGLE_CONFIG_MISSING: {
+    statusCode: 500,
+    code: 'GOOGLE_CONFIG_MISSING',
+    message: 'Google OAuth 설정이 올바르지 않습니다.',
+  },
+  INVALID_GOOGLE_CODE: {
+    statusCode: 400,
+    code: 'INVALID_GOOGLE_CODE',
+    message: '유효하지 않은 Google 인증 코드입니다.',
+  },
 };

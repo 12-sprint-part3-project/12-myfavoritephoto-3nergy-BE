@@ -4,6 +4,8 @@ import {
   signup,
   refreshToken,
   logout,
+  googleLogin,
+  googleCallbackLogin,
 } from '../controllers/auth.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { signupSchema } from '../validators/auth.schema.js';
@@ -127,6 +129,9 @@ router.post('/refresh', refreshToken);
  *                   example: 로그아웃 되었습니다.
  */
 router.post('/logout', logout);
+
+router.get('/google', googleLogin);
+router.get('/google/callback', googleCallbackLogin);
 
 router.get('/test', authenticate, (req, res) => {
   res.json({

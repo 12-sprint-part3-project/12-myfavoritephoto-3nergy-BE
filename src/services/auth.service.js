@@ -10,6 +10,7 @@ import {
 } from '../repositories/auth.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
+import axios from 'axios';
 
 const REFRESH_TOKEN_EXPIRES_DAYS = 7;
 
@@ -182,4 +183,62 @@ const getRefreshTokenExpiresAt = () => {
 
   expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS);
   return expiresAt;
+};
+
+//  Google 로그인  URL 생성
+export const getGoogleLoginUrl = () => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_REDIRECT_URI) {
+    throw AppError(ERROR_CODES.GOOGLE_CONFIG_MISSING);
+  }
+
+  const baseUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'openid email profile',
+  });
+
+  return `${baseUrl}?${params.toString()}`;
+};
+
+// Google OAuth 인증 완료 후 전달받은 Authorization Code를 이용해
+// Google Access Token을 발급받고 사용자 정보를 조회
+export const googleCallback = async (code) => {
+  // Google Callback에 code가 없는경우
+  if (!code) {
+    throw AppError(ERROR_CODES.INVALID_GOOGLE_CODE);
+  }
+  // 1. code로 Google Access Token 요청
+  const tokenResponse = await axios.post(
+    'https://oauth2.googleapis.com/token',
+    new URLSearchParams({
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code',
+    }),
+  );
+
+  const googleAccessToken = tokenResponse.data.access_token;
+  // 2. Google 사용자 정보 요청
+  const userInfoResponse = await axios.get(
+    'https://www.googleapis.com/oauth2/v3/userinfo',
+    {
+      headers: {
+        Authorization: `Bearer ${googleAccessToken}`,
+      },
+    },
+  );
+
+  const googleUser = userInfoResponse.data;
+
+  // 3. 사용자 정보 반환
+  return {
+    googleId: googleUser.sub,
+    email: googleUser.email,
+    nickname: googleUser.name,
+  };
 };
