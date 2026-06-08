@@ -130,6 +130,20 @@ router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
  *           default: latest
  *         required: false
  *         description: 정렬 기준
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *           default: 1
+ *         required: false
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: number
+ *           default: 20
+ *         required: false
+ *         description: 페이지당 조회 개수
  *     responses:
  *       200:
  *         description: 나의 판매 목록 조회 성공

@@ -67,12 +67,16 @@ export const findSalesList = async ({
 };
 
 export const findMySales = async ({
+  page,
+  pageSize,
   userUuid,
   grade,
   genre,
   keyword,
   sort,
 }) => {
+  const skip = (page - 1) * pageSize;
+
   const where = {
     userUuid,
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
@@ -97,18 +101,27 @@ export const findMySales = async ({
     createdAt: 'desc',
   };
 
-  return prisma.sale.findMany({
-    where,
-    orderBy,
-    include: {
-      photocard: true,
-      seller: {
-        select: {
-          nickname: true,
+  const [mySalesList, totalCount] = await Promise.all([
+    prisma.sale.findMany({
+      where,
+      skip,
+      take: pageSize,
+      orderBy,
+      include: {
+        photocard: true,
+        seller: {
+          select: {
+            nickname: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.sale.count({ where }),
+  ]);
+  return {
+    mySalesList,
+    totalCount,
+  };
 };
 
 export const findSaleDetail = async (saleId) => {

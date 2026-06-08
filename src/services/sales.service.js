@@ -48,7 +48,12 @@ export const getSalesList = async (query) => {
 };
 
 export const getMySales = async (query) => {
-  const sales = await findMySales({
+  const page = Number(query.page) || 1;
+  const pageSize = Number(query.pageSize) || 20;
+
+  const { mySalesList, totalCount } = await findMySales({
+    page,
+    pageSize,
     userUuid: query.userUuid,
     grade: query.grade,
     genre: query.genre,
@@ -56,7 +61,7 @@ export const getMySales = async (query) => {
     sort: query.sort,
   });
 
-  const mySalesList = sales.map((sale) => ({
+  const mySales = mySalesList.map((sale) => ({
     id: sale.id,
     name: sale.photocard.name,
     imageUrl: sale.photocard.imageUrl,
@@ -67,11 +72,19 @@ export const getMySales = async (query) => {
     nickname: sale.seller.nickname,
   }));
 
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   return {
     data: {
-      sales: mySalesList,
+      mySales,
     },
-    meta: null,
+    meta: {
+      page,
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage: page < totalPages,
+    },
   };
 };
 
