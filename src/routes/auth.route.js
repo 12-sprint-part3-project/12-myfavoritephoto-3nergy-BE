@@ -2,7 +2,7 @@ import express from 'express';
 import {
   login,
   signup,
-  refreshToken,
+  refreshAccessToken,
   logout,
   googleLogin,
   googleCallbackLogin,
@@ -106,7 +106,7 @@ router.post('/login', login);
  *       401:
  *         description: Refresh Token이 없거나, 유효하지 않거나, 만료된 경우
  */
-router.post('/refresh', refreshToken);
+router.post('/refresh', refreshAccessToken);
 
 /**
  * @swagger

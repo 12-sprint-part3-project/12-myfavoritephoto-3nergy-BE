@@ -12,9 +12,10 @@ import {
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
 import axios from 'axios';
-import { email } from 'zod';
-
-const REFRESH_TOKEN_EXPIRES_DAYS = 7;
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from '../helpers/jwt.helper.js';
 
 export const signupUser = async ({ email, password, nickname }) => {
   const existingEmailUser = await findUserByEmail(email);
@@ -61,21 +62,9 @@ export const loginUser = async ({ email, password }) => {
     throw AppError(ERROR_CODES.INVALID_CREDENTIALS);
   }
 
-  const accessToken = jwt.sign(
-    { userUuid: user.uuid },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
-    },
-  );
+  const accessToken = generateAccessToken(user.uuid);
 
-  const refreshToken = jwt.sign(
-    { userUuid: user.uuid },
-    process.env.JWT_REFRESH_SECRET,
-    {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
-    },
-  );
+  const refreshToken = generateRefreshToken(user.uuid);
 
   await createRefreshToken(user.uuid, refreshToken, getRefreshTokenExpiresAt());
 
@@ -148,22 +137,10 @@ export const refreshTokenUser = async (refreshToken) => {
   await deleteRefreshToken(refreshToken);
 
   // 새로운 Access Token 발급
-  const accessToken = jwt.sign(
-    { userUuid: payload.userUuid },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
-    },
-  );
+  const accessToken = generateAccessToken(payload.userUuid);
 
   // 새로운 Refresh Token 발급
-  const newRefreshToken = jwt.sign(
-    { userUuid: payload.userUuid },
-    process.env.JWT_REFRESH_SECRET,
-    {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
-    },
-  );
+  const newRefreshToken = generateRefreshToken(payload.userUuid);
 
   // 새 Refresh Token을 DB에 저장
   await createRefreshToken(
@@ -183,7 +160,12 @@ export const refreshTokenUser = async (refreshToken) => {
 const getRefreshTokenExpiresAt = () => {
   const expiresAt = new Date();
 
-  expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS);
+  const refreshTokenDays = parseInt(
+    process.env.JWT_REFRESH_EXPIRES_IN.replace('d', ''),
+    10,
+  );
+
+  expiresAt.setDate(expiresAt.getDate() + refreshTokenDays);
   return expiresAt;
 };
 
@@ -265,22 +247,10 @@ export const googleCallback = async (code) => {
   }
 
   // 5. Access Token 발급
-  const accessToken = jwt.sign(
-    { userUuid: user.uuid },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
-    },
-  );
+  const accessToken = generateAccessToken(user.uuid);
 
   // 6. Refresh Token 발급
-  const refreshToken = jwt.sign(
-    { userUuid: user.uuid },
-    process.env.JWT_REFRESH_SECRET,
-    {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
-    },
-  );
+  const refreshToken = generateRefreshToken(user.uuid);
 
   // 7 . Refresh Token DB 저장
   await createRefreshToken(user.uuid, refreshToken, getRefreshTokenExpiresAt());
