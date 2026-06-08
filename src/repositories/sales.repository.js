@@ -66,6 +66,14 @@ export const findSalesList = async ({
   };
 };
 
+export const findMySales = async ({ userUuid }) => {
+  return prisma.sale.findMany({
+    where: {
+      userUuid,
+    },
+  });
+};
+
 export const findSaleDetail = async (saleId) => {
   return prisma.sale.findUnique({
     where: {

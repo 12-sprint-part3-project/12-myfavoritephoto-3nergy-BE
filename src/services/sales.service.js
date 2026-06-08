@@ -1,6 +1,7 @@
 import {
   findSalesList,
   findSaleDetail,
+  findMySales,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -44,6 +45,14 @@ export const getSalesList = async (query) => {
       hasNextPage: page < totalPages,
     },
   };
+};
+
+export const getMySales = async (query) => {
+  const sales = await findMySales({
+    userUuid: query.userUuid,
+  });
+
+  return sales;
 };
 
 export const getSaleDetail = async (saleId) => {
