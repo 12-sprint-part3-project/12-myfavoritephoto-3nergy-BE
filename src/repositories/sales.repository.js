@@ -71,6 +71,14 @@ export const findMySales = async ({ userUuid }) => {
     where: {
       userUuid,
     },
+    include: {
+      photocard: true,
+      seller: {
+        select: {
+          nickname: true,
+        },
+      },
+    },
   });
 };
 

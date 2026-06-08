@@ -52,7 +52,23 @@ export const getMySales = async (query) => {
     userUuid: query.userUuid,
   });
 
-  return sales;
+  const mySalesList = sales.map((sale) => ({
+    id: sale.id,
+    name: sale.photocard.name,
+    imageUrl: sale.photocard.imageUrl,
+    grade: sale.photocard.grade,
+    genre: sale.photocard.genre,
+    price: sale.price,
+    remainingQuantity: sale.remainingQuantity,
+    nickname: sale.seller.nickname,
+  }));
+
+  return {
+    data: {
+      sales: mySalesList,
+    },
+    meta: null,
+  };
 };
 
 export const getSaleDetail = async (saleId) => {
