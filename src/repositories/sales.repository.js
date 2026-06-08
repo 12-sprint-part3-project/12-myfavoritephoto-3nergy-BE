@@ -66,11 +66,20 @@ export const findSalesList = async ({
   };
 };
 
-export const findMySales = async ({ userUuid }) => {
+export const findMySales = async ({
+  userUuid,
+  grade,
+  genre,
+  keyword,
+  sort,
+}) => {
+  const where = {
+    userUuid,
+    photocard: buildPhotocardFilter({ grade, genre, keyword }),
+  };
+
   return prisma.sale.findMany({
-    where: {
-      userUuid,
-    },
+    where,
     include: {
       photocard: true,
       seller: {

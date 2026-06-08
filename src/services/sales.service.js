@@ -50,6 +50,9 @@ export const getSalesList = async (query) => {
 export const getMySales = async (query) => {
   const sales = await findMySales({
     userUuid: query.userUuid,
+    grade: query.grade,
+    genre: query.genre,
+    keyword: query.keyword,
   });
 
   const mySalesList = sales.map((sale) => ({
