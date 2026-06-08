@@ -78,8 +78,28 @@ export const findMySales = async ({
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
+  const orderByMap = {
+    latest: {
+      createdAt: 'desc',
+    },
+    oldest: {
+      createdAt: 'asc',
+    },
+    price_asc: {
+      price: 'asc',
+    },
+    price_desc: {
+      price: 'desc',
+    },
+  };
+
+  const orderBy = orderByMap[sort] || {
+    createdAt: 'desc',
+  };
+
   return prisma.sale.findMany({
     where,
+    orderBy,
     include: {
       photocard: true,
       seller: {

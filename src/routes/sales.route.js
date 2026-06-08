@@ -122,6 +122,14 @@ router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
  *         schema:
  *           type: boolean
  *         description: 매진 여부
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [latest, oldest, price_asc, price_desc]
+ *           default: latest
+ *         required: false
+ *         description: 정렬 기준
  *     responses:
  *       200:
  *         description: 나의 판매 목록 조회 성공
