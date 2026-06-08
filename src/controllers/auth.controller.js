@@ -101,11 +101,19 @@ export const googleCallbackLogin = async (req, res, next) => {
   try {
     const { code } = req.query;
 
-    const googleUser = await googleCallback(code);
+    const { accessToken, refreshToken, user } = await googleCallback(code);
+
+    // Refresh Token 을 HttpOnly Cookie 에 저장한다
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.COOKIE_SECURE === 'true',
+      sameSite: process.env.COOKIE_SAME_SITE || 'lax',
+      maxAge: Number(process.env.COOKIE_MAX_AGE),
+    });
 
     return res.status(200).json({
-      message: 'Google 사용자 정보 조회 성공',
-      user: googleUser,
+      accessToken,
+      user,
     });
   } catch (error) {
     next(error);

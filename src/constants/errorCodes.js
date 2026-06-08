@@ -205,4 +205,9 @@ export const ERROR_CODES = {
     code: 'INVALID_GOOGLE_CODE',
     message: '유효하지 않은 Google 인증 코드입니다.',
   },
+  GOOGLE_AUTH_FAILED: {
+    statusCode: 401,
+    code: 'GOOGLE_AUTH_FAILED',
+    message: 'Google 인증에 실패했습니다.',
+  },
 };

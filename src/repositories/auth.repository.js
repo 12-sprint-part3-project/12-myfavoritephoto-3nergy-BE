@@ -90,7 +90,7 @@ export const deleteExpiredRefreshTokens = async () => {
 // Google ID로 사용자 조회
 export const findUserByGoogleId = async (googleId) => {
   return prisma.user.findFirst({
-    whrer: {
+    where: {
       provider: 'GOOGLE',
       providerId: googleId,
     },
