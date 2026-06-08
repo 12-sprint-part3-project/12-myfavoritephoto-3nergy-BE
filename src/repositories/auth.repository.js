@@ -10,7 +10,7 @@ export const findUserByEmail = async (email) => {
 };
 
 // 닉네임으로 사용자 조회
-export const findeUserByNickname = async (nickname) => {
+export const findUserByNickname = async (nickname) => {
   return prisma.user.findUnique({
     where: {
       nickname,

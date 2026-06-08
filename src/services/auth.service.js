@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {
   createUserWithPoint,
-  findeUserByNickname,
+  findUserByNickname,
   findUserByEmail,
   createRefreshToken,
   findRefreshToken,
@@ -23,7 +23,7 @@ export const signupUser = async ({ email, password, nickname }) => {
     throw AppError(ERROR_CODES.EMAIL_ALREADY_EXISTS);
   }
 
-  const existingNicknameUser = await findeUserByNickname(nickname);
+  const existingNicknameUser = await findUserByNickname(nickname);
 
   if (existingNicknameUser) {
     throw AppError(ERROR_CODES.NICKNAME_ALREADY_EXISTS);
@@ -212,30 +212,38 @@ export const googleCallback = async (code) => {
   if (!code) {
     throw AppError(ERROR_CODES.INVALID_GOOGLE_CODE);
   }
-  // 1. code로 Google Access Token 요청
-  const tokenResponse = await axios.post(
-    'https://oauth2.googleapis.com/token',
-    new URLSearchParams({
-      code,
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-      grant_type: 'authorization_code',
-    }),
-  );
 
-  const googleAccessToken = tokenResponse.data.access_token;
-  // 2. Google 사용자 정보 요청
-  const userInfoResponse = await axios.get(
-    'https://www.googleapis.com/oauth2/v3/userinfo',
-    {
-      headers: {
-        Authorization: `Bearer ${googleAccessToken}`,
+  let googleUser;
+
+  // Google 사용자 정보 조회
+  try {
+    // 1. code로 Google Access Token 요청
+    const tokenResponse = await axios.post(
+      'https://oauth2.googleapis.com/token',
+      new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+        grant_type: 'authorization_code',
+      }),
+    );
+
+    const googleAccessToken = tokenResponse.data.access_token;
+    // 2. Google 사용자 정보 요청
+    const userInfoResponse = await axios.get(
+      'https://www.googleapis.com/oauth2/v3/userinfo',
+      {
+        headers: {
+          Authorization: `Bearer ${googleAccessToken}`,
+        },
       },
-    },
-  );
+    );
 
-  const googleUser = userInfoResponse.data;
+    googleUser = userInfoResponse.data;
+  } catch (error) {
+    throw AppError(ERROR_CODES.GOOGLE_AUTH_FAILED);
+  }
 
   // 3. Google ID로 기존 회원 조회
   let user = await findUserByGoogleId(googleUser.sub);
