@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSales } from '../controllers/sales.controller.js';
+import { getSales, getSaleDetail } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validateQuery } from '../middlewares/validate.middleware.js';
 import { getSalesListQuerySchema } from '../validators/photocard.schema.js';
@@ -75,5 +75,68 @@ const router = express.Router();
  *         description: 서버 내부 오류
  */
 router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
+
+/**
+ * @swagger
+ * /api/sales/{saleId}:
+ *   get:
+ *     summary: 판매 상세 조회
+ *     description: saleId를 기반으로 판매 상세 정보를 조회합니다.
+ *     tags:
+ *       - Marketplace
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: saleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 판매 ID
+ *     responses:
+ *       200:
+ *         description: 판매 상세 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: 판매 상세 조회에 성공했습니다.
+ *               data:
+ *                 sale:
+ *                   saleId: 1
+ *                   price: 1000
+ *                   quantity: 3
+ *                   remainingQuantity: 2
+ *                   status: SALE
+ *                   createdAt: "2026-06-02T08:30:00.000Z"
+ *                   updatedAt: "2026-06-02T08:30:00.000Z"
+ *                   photocard:
+ *                     id: 1
+ *                     name: IVE 포토카드
+ *                     imageUrl: https://example.com/image.png
+ *                     description: 앨범 포토카드입니다.
+ *                     grade: rare
+ *                     genre: album
+ *                   seller:
+ *                     uuid: 9c6b1c7e-7e4a-4c5a-9f6d-8c3f2b1a1234
+ *                     nickname: 홍길동
+ *                   desiredGrade: rare
+ *                   desiredGenre: album
+ *                   desiredDescription: 희망 교환 조건입니다.
+ *               error: null
+ *       404:
+ *         description: 판매글을 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: SALE_NOT_FOUND
+ *                 message: 존재하지 않는 판매글입니다.
+ *       500:
+ *         description: 서버 내부 오류
+ */
+router.get('/:saleId', authenticate, getSaleDetail);
 
 export default router;

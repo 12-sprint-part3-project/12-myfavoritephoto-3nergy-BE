@@ -1,4 +1,9 @@
-import { findSalesList } from '../repositories/sales.repository.js';
+import {
+  findSalesList,
+  findSaleDetail,
+} from '../repositories/sales.repository.js';
+import { AppError } from '../errors/AppError.js';
+import { ERROR_CODES } from '../constants/errorCodes.js';
 
 export const getSalesList = async (query) => {
   const page = Number(query.page) || 1;
@@ -37,6 +42,46 @@ export const getSalesList = async (query) => {
       totalCount,
       totalPages,
       hasNextPage: page < totalPages,
+    },
+  };
+};
+
+export const getSaleDetail = async (saleId) => {
+  const sale = await findSaleDetail(Number(saleId));
+
+  if (!sale) {
+    throw AppError(ERROR_CODES.SALE_NOT_FOUND);
+  }
+
+  return {
+    data: {
+      sale: {
+        saleId: sale.id,
+        price: sale.price,
+        quantity: sale.quantity,
+        remainingQuantity: sale.remainingQuantity,
+        status: sale.status,
+        createdAt: sale.createdAt,
+        updatedAt: sale.updatedAt,
+
+        photocard: {
+          id: sale.photocard.id,
+          name: sale.photocard.name,
+          imageUrl: sale.photocard.imageUrl,
+          description: sale.photocard.description,
+          grade: sale.photocard.grade,
+          genre: sale.photocard.genre,
+        },
+
+        seller: {
+          uuid: sale.seller.uuid,
+          nickname: sale.seller.nickname,
+        },
+
+        desiredGrade: sale.desiredGrade,
+        desiredGenre: sale.desiredGenre,
+        desiredDescription: sale.desiredDescription,
+      },
     },
   };
 };
