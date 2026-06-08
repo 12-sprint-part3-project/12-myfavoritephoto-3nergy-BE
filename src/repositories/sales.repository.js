@@ -66,6 +66,54 @@ export const findSalesList = async ({
   };
 };
 
+export const findMySales = async ({ userUuid, grade, genre, keyword }) => {
+  const where = {
+    userUuid,
+    photocard: buildPhotocardFilter({ grade, genre, keyword }),
+  };
+
+  return prisma.sale.findMany({
+    where,
+    include: {
+      photocard: true,
+      seller: {
+        select: {
+          nickname: true,
+        },
+      },
+    },
+  });
+};
+
+export const findMyPendingTrades = async ({
+  userUuid,
+  grade,
+  genre,
+  keyword,
+}) => {
+  return prisma.trade.findMany({
+    where: {
+      proposerUuid: userUuid,
+      status: 'PENDING',
+      offeredCard: {
+        photocard: buildPhotocardFilter({ grade, genre, keyword }),
+      },
+    },
+    include: {
+      offeredCard: {
+        include: {
+          photocard: true,
+          owner: {
+            select: {
+              nickname: true,
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
 export const findSaleDetail = async (saleId) => {
   return prisma.sale.findUnique({
     where: {

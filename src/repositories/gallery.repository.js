@@ -20,8 +20,12 @@ export const findCardsList = async ({
   };
 
   const orderByMap = {
-    latest: { createdAt: 'desc' },
-    oldest: { createdAt: 'asc' },
+    latest: {
+      acquiredAt: 'desc',
+    },
+    oldest: {
+      acquiredAt: 'asc',
+    },
     price_asc: {
       photocard: {
         price: 'asc',
