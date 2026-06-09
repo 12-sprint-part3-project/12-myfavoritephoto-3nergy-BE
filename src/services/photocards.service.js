@@ -5,6 +5,7 @@ import {
   createPhotocardWithUserCards,
   findCardsListRepository,
 } from '../repositories/photocards.repository.js';
+import { getStartOfMonthKST } from '../helpers/date.helper.js';
 
 const MONTHLY_PHOTOCARD_CREATION_LIMIT = 3; // 월 3장 제한
 
@@ -84,7 +85,7 @@ export const createPhotocard = async (userUuid, body) => {
   const now = new Date();
 
   //  매월 1일
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfMonth = getStartOfMonthKST();
 
   const createdCount = await countMonthlyCreatedPhotocards({
     userUuid,
