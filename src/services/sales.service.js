@@ -1,17 +1,21 @@
 import {
-  findSalesList,
-  findSaleDetail,
-  findMySales,
-  findMyPendingTrades,
+  findSalesListRepository,
+  createSaleRepository,
+  findOwnedPhotocardsRepository,
+  updateUserPhotocardsStatusRepository,
+  findMySalesRepository,
+  findMyPendingTradesRepository,
+  findSaleDetailRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
+import prisma from '../lib/prisma.js';
 
-export const getSalesList = async (query) => {
+export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const { salesList, totalCount } = await findSalesList({
+  const { salesList, totalCount } = await findSalesListRepository({
     page,
     pageSize,
     grade: query.grade,
@@ -48,18 +52,84 @@ export const getSalesList = async (query) => {
   };
 };
 
-export const getMySales = async (query) => {
+export const createSaleService = async (data) => {
+  const sale = await prisma.$transaction(async (tx) => {
+    const ownedPhotocards = await findOwnedPhotocardsRepository(
+      {
+        userUuid: data.userUuid,
+        photocardId: data.photocardId,
+      },
+      tx,
+    );
+
+    if (ownedPhotocards.length === 0) {
+      throw AppError(ERROR_CODES.NOT_CARD_OWNER);
+    }
+
+    if (ownedPhotocards.length < data.quantity) {
+      throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+    }
+
+    const selectedUserPhotocardIds = ownedPhotocards
+      .slice(0, data.quantity)
+      .map((card) => card.id);
+
+    const createdSale = await createSaleRepository(
+      {
+        userUuid: data.userUuid,
+        photocardId: data.photocardId,
+        price: data.price,
+        quantity: data.quantity,
+        remainingQuantity: data.quantity,
+        status: 'SALE',
+        desiredGrade: data.desiredGrade,
+        desiredGenre: data.desiredGenre,
+        desiredDescription: data.desiredDescription,
+      },
+      tx,
+    );
+
+    await updateUserPhotocardsStatusRepository(
+      {
+        userPhotocardIds: selectedUserPhotocardIds,
+        status: 'ON_SALE',
+      },
+      tx,
+    );
+
+    return createdSale;
+  });
+
+  return {
+    data: {
+      sale: {
+        id: sale.id,
+        photocardId: sale.photocardId,
+        price: sale.price,
+        quantity: sale.quantity,
+        remainingQuantity: sale.remainingQuantity,
+        status: sale.status,
+        desiredGrade: sale.desiredGrade,
+        desiredGenre: sale.desiredGenre,
+        desiredDescription: sale.desiredDescription,
+        createdAt: sale.createdAt,
+      },
+    },
+  };
+};
+
+export const getMySalesService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const mySalesList = await findMySales({
+  const mySalesList = await findMySalesRepository({
     userUuid: query.userUuid,
     grade: query.grade,
     genre: query.genre,
     keyword: query.keyword,
   });
 
-  const pendingTrades = await findMyPendingTrades({
+  const pendingTrades = await findMyPendingTradesRepository({
     userUuid: query.userUuid,
     grade: query.grade,
     genre: query.genre,
@@ -168,8 +238,8 @@ export const getMySales = async (query) => {
   };
 };
 
-export const getSaleDetail = async (saleId) => {
-  const sale = await findSaleDetail(Number(saleId));
+export const getSaleDetailService = async (saleId) => {
+  const sale = await findSaleDetailRepository(Number(saleId));
 
   if (!sale) {
     throw AppError(ERROR_CODES.SALE_NOT_FOUND);

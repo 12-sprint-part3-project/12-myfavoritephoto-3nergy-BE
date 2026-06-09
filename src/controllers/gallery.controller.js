@@ -1,19 +1,14 @@
-import { getCardsList } from '../services/gallery.service.js';
+import { getCardsListService } from '../services/gallery.service.js';
+import { sendSuccessWithMeta } from '../helpers/response.helper.js';
 
-export const getCards = async (req, res, next) => {
+export const getCardsController = async (req, res, next) => {
   try {
-    const result = await getCardsList({
-      userUuid: req.user.userId,
+    const result = await getCardsListService({
+      userUuid: req.user.userUuid,
       ...req.query,
     });
 
-    return res.status(200).json({
-      success: true,
-      message: '내 포토카드 목록을 조회했습니다.',
-      data: result.data,
-      meta: result.meta,
-      error: null,
-    });
+    return sendSuccessWithMeta(res, 200, result.data, result.meta);
   } catch (error) {
     next(error);
   }
