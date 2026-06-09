@@ -51,13 +51,17 @@ export const getSalesListService = async (query) => {
 };
 
 export const createSaleService = async ({ data }) => {
-  const ownedPhotocardsService = await findOwnedPhotocardsRepository({
+  const ownedPhotocards = await findOwnedPhotocardsRepository({
     userUuid: data.userUuid,
     photocardId: data.photocardId,
   });
 
-  if (ownedPhotocardsService.length === 0) {
+  if (ownedPhotocards.length === 0) {
     throw AppError(ERROR_CODES.NOT_CARD_OWNER);
+  }
+
+  if (ownedPhotocards.length < data.quantity) {
+    throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
   }
 
   const sale = await createSaleRepository({
