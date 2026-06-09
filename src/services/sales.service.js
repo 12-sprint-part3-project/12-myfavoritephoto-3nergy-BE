@@ -6,6 +6,7 @@ import {
   findMyPendingTradesRepository,
   findSaleDetailRepository,
   updateUserPhotocardsStatusRepository,
+  updateSaleRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -279,12 +280,41 @@ export const getSaleDetailService = async (saleId) => {
 };
 
 export const updateSaleService = async (saleId, userUuid, updateData) => {
+  const sale = await findSaleForUpdateRepository(saleId);
+
+  if (!sale) {
+    throw new AppError(ERROR_CODES.SALE_NOT_FOUND, 404);
+  }
+
+  if (sale.userUuid !== userUuid) {
+    throw new AppError(ERROR_CODES.NOT_SALE_OWNER, 403);
+  }
+
+  if (sale.status !== 'SALE') {
+    throw new AppError(ERROR_CODES.INVALID_SALE_STATUS, 400);
+  }
+
+  const allowedFields = [
+    'price',
+    'quantity',
+    'desiredGrade',
+    'desiredGenre',
+    'desiredDescription',
+  ];
+
+  const filteredData = Object.fromEntries(
+    Object.entries(updateData).filter(([key]) => allowedFields.includes(key)),
+  );
+
+  if (Object.keys(filteredData).length === 0) {
+    throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+  }
+
+  const updatedSale = await updateSaleRepository(saleId, filteredData);
+
   return {
     data: {
-      sale: {
-        id: saleId,
-        ...updateData,
-      },
+      sale: updatedSale,
     },
   };
 };
