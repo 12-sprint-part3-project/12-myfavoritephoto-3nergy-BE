@@ -1,10 +1,10 @@
-import { findCardsList } from '../repositories/gallery.repository.js';
+import { findCardsListRepository } from '../repositories/gallery.repository.js';
 
-export const getCardsList = async (query) => {
+export const getCardsListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const { cardsList } = await findCardsList({
+  const { cardsList } = await findCardsListRepository({
     userUuid: query.userUuid,
     page,
     pageSize,

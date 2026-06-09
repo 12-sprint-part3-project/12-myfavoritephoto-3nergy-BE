@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCards } from '../controllers/gallery.controller.js';
+import { getCardsController } from '../controllers/gallery.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validateQuery } from '../middlewares/validate.middleware.js';
 import { getGalleryListQuerySchema } from '../validators/photocardQuery.schema.js';
@@ -71,7 +71,7 @@ router.get(
   '/',
   authenticate,
   validateQuery(getGalleryListQuerySchema),
-  getCards,
+  getCardsController,
 );
 
 export default router;

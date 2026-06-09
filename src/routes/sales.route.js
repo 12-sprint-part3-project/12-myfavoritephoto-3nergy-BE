@@ -11,6 +11,7 @@ import {
   getSalesListQuerySchema,
   getMySalesQuerySchema,
 } from '../validators/photocardQuery.schema.js';
+import { createSaleBodySchema } from '../validators/photocardBody.schema.js';
 
 const router = express.Router();
 
@@ -89,7 +90,12 @@ router.get(
   getSalesController,
 );
 
-router.post('/', authenticate, validateQuery(), createSaleController);
+router.post(
+  '/',
+  authenticate,
+  validateQuery(createSaleBodySchema),
+  createSaleController,
+);
 
 /**
  * @swagger
