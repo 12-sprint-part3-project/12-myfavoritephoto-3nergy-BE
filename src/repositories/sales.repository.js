@@ -184,3 +184,38 @@ export const findSaleDetailRepository = async (saleId) => {
     },
   });
 };
+
+export const findSaleForUpdateRepository = async (saleId) => {
+  return prisma.sale.findUnique({
+    where: {
+      id: saleId,
+    },
+    select: {
+      id: true,
+      userUuid: true,
+      status: true,
+      quantity: true,
+      remainingQuantity: true,
+    },
+  });
+};
+
+export const updateSaleRepository = async (saleId, data) => {
+  return prisma.sale.update({
+    where: {
+      id: saleId,
+    },
+    data,
+    select: {
+      id: true,
+      price: true,
+      quantity: true,
+      remainingQuantity: true,
+      status: true,
+      desiredGrade: true,
+      desiredGenre: true,
+      desiredDescription: true,
+      updateAt: true,
+    },
+  });
+};
