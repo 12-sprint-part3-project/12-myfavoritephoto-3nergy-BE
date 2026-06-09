@@ -1,5 +1,7 @@
 import {
   findSalesListRepository,
+  findOwnedPhotocardsRepository,
+  createSaleRepository,
   findMySalesRepository,
   findMyPendingTradesRepository,
   findSaleDetailRepository,
@@ -48,25 +50,26 @@ export const getSalesListService = async (query) => {
   };
 };
 
-export const createSaleService = async ({
-  userUuid,
-  photocardId,
-  price,
-  quantity,
-  desiredGrade,
-  desiredGenre,
-  desiredDescription,
-}) => {
+export const createSaleService = async ({ data }) => {
+  const ownedPhotocardsService = await findOwnedPhotocardsRepository({
+    userUuid: data.userUuid,
+    photocardId: data.photocardId,
+  });
+
+  if (ownedPhotocardsService.length === 0) {
+    throw AppError(ERROR_CODES.NOT_CARD_OWNER);
+  }
+
   const sale = await createSaleRepository({
-    userUuid,
-    photocardId,
-    price,
-    quantity,
-    remainingQuantity: quantity,
+    userUuid: data.userUuid,
+    photocardId: data.photocardId,
+    price: data.price,
+    quantity: data.quantity,
+    remainingQuantity: data.quantity,
     status: 'SALE',
-    desiredGrade,
-    desiredGenre,
-    desiredDescription,
+    desiredGrade: data.desiredGrade,
+    desiredGenre: data.desiredGenre,
+    desiredDescription: data.desiredDescription,
   });
 
   return {

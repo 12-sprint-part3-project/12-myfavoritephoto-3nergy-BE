@@ -66,6 +66,23 @@ export const findSalesListRepository = async ({
   };
 };
 
+export const findOwnedPhotocardsRepository = async ({
+  userUuid,
+  photocardId,
+}) => {
+  return prisma.userPhotocard.findMany({
+    where: {
+      ownerUuid: userUuid,
+      photocardId,
+      status: 'OWNED',
+    },
+    select: {
+      id: true,
+      photocardId: true,
+    },
+  });
+};
+
 export const createSaleRepository = async ({
   userUuid,
   photocardId,
