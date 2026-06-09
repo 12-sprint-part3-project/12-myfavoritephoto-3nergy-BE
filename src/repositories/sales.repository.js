@@ -66,37 +66,17 @@ export const findSalesListRepository = async ({
   };
 };
 
-export const createSaleRepository = async ({
-  userUuid,
-  photocardId,
-  price,
-  quantity,
-  remainingQuantity,
-  status,
-  desiredGrade,
-  desiredGenre,
-  desiredDescription,
-}) => {
-  return prisma.sale.create({
-    data: {
-      userUuid,
-      photocardId,
-      price,
-      quantity,
-      remainingQuantity,
-      status,
-      desiredGrade,
-      desiredGenre,
-      desiredDescription,
-    },
+export const createSaleRepository = async ({ data, tx = prisma }) => {
+  return tx.sale.create({
+    data,
   });
 };
 
-export const findOwnedPhotocardsRepository = async ({
-  userUuid,
-  photocardId,
-}) => {
-  return prisma.userPhotocard.findMany({
+export const findOwnedPhotocardsRepository = async (
+  { userUuid, photocardId },
+  tx = prisma,
+) => {
+  return tx.userPhotocard.findMany({
     where: {
       ownerUuid: userUuid,
       photocardId,
@@ -109,11 +89,11 @@ export const findOwnedPhotocardsRepository = async ({
   });
 };
 
-export const updateUserPhotocardsStatusRepository = async ({
-  userPhotocardIds,
-  status,
-}) => {
-  return prisma.userPhotocard.updateMany({
+export const updateUserPhotocardsStatusRepository = async (
+  { userPhotocardIds, status },
+  tx = prisma,
+) => {
+  return tx.userPhotocard.updateMany({
     where: {
       id: {
         in: userPhotocardIds,

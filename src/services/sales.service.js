@@ -9,6 +9,7 @@ import {
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
+import prisma from '../lib/prisma.js';
 
 export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
@@ -52,56 +53,52 @@ export const getSalesListService = async (query) => {
 };
 
 export const createSaleService = async ({ data }) => {
-  const ownedPhotocards = await findOwnedPhotocardsRepository({
-    userUuid: data.userUuid,
-    photocardId: data.photocardId,
-  });
-
-  if (ownedPhotocards.length === 0) {
-    throw AppError(ERROR_CODES.NOT_CARD_OWNER);
-  }
-
-  if (ownedPhotocards.length < data.quantity) {
-    throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
-  }
-
-  const selectedUserPhotocardIds = ownedPhotocards
-    .slice(0, data.quantity)
-    .map((card) => card.id);
-
-  const sale = await createSaleRepository({
-    userUuid: data.userUuid,
-    photocardId: data.photocardId,
-    price: data.price,
-    quantity: data.quantity,
-    remainingQuantity: data.quantity,
-    status: 'SALE',
-    desiredGrade: data.desiredGrade,
-    desiredGenre: data.desiredGenre,
-    desiredDescription: data.desiredDescription,
-  });
-
-  await updateUserPhotocardsStatusRepository({
-    userPhotocardIds: selectedUserPhotocardIds,
-    status: 'ON_SALE',
-  });
-
-  return {
-    data: {
-      sale: {
-        id: sale.id,
-        photocardId: sale.photocardId,
-        price: sale.price,
-        quantity: sale.quantity,
-        remainingQuantity: sale.remainingQuantity,
-        status: sale.status,
-        desiredGrade: sale.desiredGrade,
-        desiredGenre: sale.desiredGenre,
-        desiredDescription: sale.desiredDescription,
-        createdAt: sale.createdAt,
+  const sale = await prisma.$transaction(async (tx) => {
+    const ownedPhotocards = await findOwnedPhotocardsRepository(
+      {
+        userUuid: data.userUuid,
+        photocardId: data.photocardId,
       },
+      tx,
+    );
+
+    if (ownedPhotocards.length === 0) {
+      throw AppError(ERROR_CODES.NOT_CARD_OWNER);
+    }
+
+    if (ownedPhotocards.length < data.quantity) {
+      throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+    }
+
+    const selectedUserPhotocardIds = ownedPhotocards
+      .slice(0, data.quantity)
+      .map((card) => card.id);
+
+    const createdSale = await createSaleRepository(
+      {
+        userUuid: data.userUuid,
+        photocardId: data.photocardId,
+        price: data.price,
+        quantity: data.quantity,
+        remainingQuantity: data.quantity,
+        status: 'SALE',
+        desiredGrade: data.desiredGrade,
+        desiredGenre: data.desiredGenre,
+        desiredDescription: data.desiredDescription,
+      },
+      tx,
+    );
+  });
+
+  await updateUserPhotocardsStatusRepository(
+    {
+      userPhotocardIds,
+      status: 'ON_SALE',
     },
-  };
+    tx,
+  );
+
+  return createdSale;
 };
 
 export const getMySalesService = async (query) => {
