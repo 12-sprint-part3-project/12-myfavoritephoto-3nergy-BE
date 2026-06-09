@@ -6,11 +6,11 @@ import {
   createSaleController,
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import { validateQuery } from '../middlewares/validate.middleware.js';
+import { validate, validateQuery } from '../middlewares/validate.middleware.js';
 import {
   getSalesListQuerySchema,
   getMySalesQuerySchema,
-} from '../validators/photocard.schema.js';
+} from '../validators/photocardQuery.schema.js';
 
 const router = express.Router();
 
@@ -89,7 +89,7 @@ router.get(
   getSalesController,
 );
 
-router.post('/', authenticate, createSaleController);
+router.post('/', authenticate, validateQuery(), createSaleController);
 
 /**
  * @swagger
