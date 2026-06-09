@@ -101,6 +101,12 @@ export const ERROR_CODES = {
     message: '본인의 판매글만 수정할 수 있습니다.',
   },
 
+  NOT_ENOUGH_QUANTITY: {
+    statusCode: 400,
+    code: 'NOT_ENOUGH_QUANTITY',
+    message: '판매 수량이 보유 수량을 초과했습니다.',
+  },
+
   SALE_NOT_EDITABLE: {
     statusCode: 409,
     code: 'SALE_NOT_EDITABLE',

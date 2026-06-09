@@ -1,7 +1,7 @@
-import { buildPhotocardFilter } from '../lib/buildPhotocardFilter.js';
+import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js';
 import prisma from '../lib/prisma.js';
 
-export const findCardsList = async ({
+export const findCardsListRepository = async ({
   userUuid,
   page,
   pageSize,

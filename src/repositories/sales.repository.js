@@ -1,7 +1,7 @@
-import { buildPhotocardFilter } from '../lib/buildPhotocardFilter.js';
+import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js';
 import prisma from '../lib/prisma.js';
 
-export const findSalesList = async ({
+export const findSalesListRepository = async ({
   page,
   pageSize,
   grade,
@@ -66,7 +66,51 @@ export const findSalesList = async ({
   };
 };
 
-export const findMySales = async ({ userUuid, grade, genre, keyword }) => {
+export const createSaleRepository = async (data, tx = prisma) => {
+  return tx.sale.create({
+    data,
+  });
+};
+
+export const findOwnedPhotocardsRepository = async (
+  { userUuid, photocardId },
+  tx = prisma,
+) => {
+  return tx.userPhotocard.findMany({
+    where: {
+      ownerUuid: userUuid,
+      photocardId,
+      status: 'OWNED',
+    },
+    select: {
+      id: true,
+      photocardId: true,
+    },
+  });
+};
+
+export const updateUserPhotocardsStatusRepository = async (
+  { userPhotocardIds, status },
+  tx = prisma,
+) => {
+  return tx.userPhotocard.updateMany({
+    where: {
+      id: {
+        in: userPhotocardIds,
+      },
+    },
+    data: {
+      status,
+    },
+  });
+};
+
+export const findMySalesRepository = async ({
+  userUuid,
+  grade,
+  genre,
+  keyword,
+}) => {
   const where = {
     userUuid,
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
@@ -85,7 +129,7 @@ export const findMySales = async ({ userUuid, grade, genre, keyword }) => {
   });
 };
 
-export const findMyPendingTrades = async ({
+export const findMyPendingTradesRepository = async ({
   userUuid,
   grade,
   genre,
@@ -114,7 +158,7 @@ export const findMyPendingTrades = async ({
   });
 };
 
-export const findSaleDetail = async (saleId) => {
+export const findSaleDetailRepository = async (saleId) => {
   return prisma.sale.findUnique({
     where: {
       id: saleId,

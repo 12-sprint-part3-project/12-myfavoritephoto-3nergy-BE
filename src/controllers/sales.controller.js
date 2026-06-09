@@ -1,56 +1,57 @@
 import {
-  getSalesList,
-  getSaleDetail as getSaleDetailService,
-  getMySales as getMySalesService,
+  getSalesListService,
+  getSaleDetailService,
+  getMySalesService,
+  createSaleService,
 } from '../services/sales.service.js';
+import {
+  sendSuccess,
+  sendSuccessWithMeta,
+} from '../helpers/response.helper.js';
 
-export const getSales = async (req, res, next) => {
+export const getSalesController = async (req, res, next) => {
   try {
-    const result = await getSalesList(req.validatedQuery);
+    const result = await getSalesListService(req.validatedQuery);
 
-    return res.status(200).json({
-      success: true,
-      message: '판매 목록 조회에 성공했습니다.',
-      data: result.data,
-      meta: result.meta,
-      error: null,
-    });
+    return sendSuccessWithMeta(res, 200, result.data, result.meta);
   } catch (error) {
     next(error);
   }
 };
 
-export const getMySales = async (req, res, next) => {
+export const createSaleController = async (req, res, next) => {
+  try {
+    const result = await createSaleService({
+      userUuid: req.user.userUuid,
+      ...req.body,
+    });
+
+    return sendSuccess(res, 201, result.data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMySalesController = async (req, res, next) => {
   try {
     const result = await getMySalesService({
-      userUuid: req.user.userId,
+      userUuid: req.user.userUuid,
       ...req.validatedQuery,
     });
 
-    return res.status(200).json({
-      success: true,
-      message: '나의 판매 조회에 성공했습니다.',
-      data: result.data,
-      meta: result.meta,
-      error: null,
-    });
+    return sendSuccessWithMeta(res, 200, result.data, result.meta);
   } catch (error) {
     next(error);
   }
 };
 
-export const getSaleDetail = async (req, res, next) => {
+export const getSaleDetailController = async (req, res, next) => {
   try {
     const { saleId } = req.params;
 
     const result = await getSaleDetailService(Number(saleId));
 
-    return res.status(200).json({
-      success: true,
-      message: '판매 상세 조회에 성공했습니다.',
-      data: result.data,
-      error: null,
-    });
+    return sendSuccess(res, 200, result.data);
   } catch (error) {
     next(error);
   }

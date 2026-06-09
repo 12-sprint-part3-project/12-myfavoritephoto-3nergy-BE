@@ -6,3 +6,18 @@ export const sendSuccess = (res, statusCode, data = null) => {
     error: null,
   });
 };
+
+// 페이징 응답
+export const sendSuccessWithMeta = (
+  res,
+  statusCode,
+  data = null,
+  meta = null,
+) => {
+  return res.status(statusCode).json({
+    success: true,
+    data,
+    meta,
+    error: null,
+  });
+};
