@@ -1,7 +1,8 @@
 import {
   findSalesListRepository,
-  findOwnedPhotocardsRepository,
   createSaleRepository,
+  findOwnedPhotocardsRepository,
+  updateUserPhotocardsStatusRepository,
   findMySalesRepository,
   findMyPendingTradesRepository,
   findSaleDetailRepository,
@@ -64,6 +65,10 @@ export const createSaleService = async ({ data }) => {
     throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
   }
 
+  const selectedUserPhotocardIds = ownedPhotocards
+    .slice(0, data.quantity)
+    .map((card) => card.id);
+
   const sale = await createSaleRepository({
     userUuid: data.userUuid,
     photocardId: data.photocardId,
@@ -74,6 +79,11 @@ export const createSaleService = async ({ data }) => {
     desiredGrade: data.desiredGrade,
     desiredGenre: data.desiredGenre,
     desiredDescription: data.desiredDescription,
+  });
+
+  await updateUserPhotocardsStatusRepository({
+    userPhotocardIds: selectedUserPhotocardIds,
+    status: 'ON_SALE',
   });
 
   return {
