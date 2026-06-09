@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCardsController } from '../controllers/gallery.controller.js';
+import { getCardsController } from '../controllers/photocards.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validateQuery } from '../middlewares/validate.middleware.js';
 import { getGalleryListQuerySchema } from '../validators/photocardQuery.schema.js';

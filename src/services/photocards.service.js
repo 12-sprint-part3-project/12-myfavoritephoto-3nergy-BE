@@ -1,4 +1,4 @@
-import { findCardsListRepository } from '../repositories/gallery.repository.js';
+import { findCardsListRepository } from '../repositories/photocards.repository.js';
 
 export const getCardsListService = async (query) => {
   const page = Number(query.page) || 1;
