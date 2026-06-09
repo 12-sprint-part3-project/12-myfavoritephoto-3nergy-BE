@@ -90,10 +90,145 @@ router.get(
   getSalesController,
 );
 
+/**
+ * @swagger
+ * /api/sales:
+ *   post:
+ *     summary: 판매 등록
+ *     description: 보유 중인 포토카드를 판매 등록합니다.
+ *     tags:
+ *       - Sales
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - photocardId
+ *               - price
+ *               - quantity
+ *               - desiredGrade
+ *               - desiredGenre
+ *               - desiredDescription
+ *             properties:
+ *               photocardId:
+ *                 type: integer
+ *                 example: 1
+ *                 description: 판매할 포토카드 ID
+ *               price:
+ *                 type: integer
+ *                 example: 1000
+ *                 description: 장당 판매 가격
+ *               quantity:
+ *                 type: integer
+ *                 example: 3
+ *                 description: 판매 등록할 수량
+ *               desiredGrade:
+ *                 type: string
+ *                 enum: [common, rare, super_rare, legendary]
+ *                 example: common
+ *                 description: 희망 교환 등급
+ *               desiredGenre:
+ *                 type: string
+ *                 enum: [album, special, landscape, season_greeting, fan_meeting, concert, md, collage, branding, etc]
+ *                 example: album
+ *                 description: 희망 교환 장르
+ *               desiredDescription:
+ *                 type: string
+ *                 example: "같은 등급 카드와 교환 희망합니다."
+ *                 description: 희망 교환 설명
+ *     responses:
+ *       201:
+ *         description: 판매 등록 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 sale:
+ *                   id: 1
+ *                   photocardId: 1
+ *                   price: 1000
+ *                   quantity: 3
+ *                   remainingQuantity: 3
+ *                   status: SALE
+ *                   desiredGrade: common
+ *                   desiredGenre: album
+ *                   desiredDescription: 같은 등급 카드와 교환 희망합니다.
+ *                   createdAt: "2026-06-09T06:00:00.000Z"
+ *               error: null
+ *
+ *       400:
+ *         description: 입력값 검증 실패 또는 보유 수량 초과
+ *         content:
+ *           application/json:
+ *             examples:
+ *               INVALID_INPUT:
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_INPUT
+ *                     message: 입력값이 올바르지 않습니다.
+ *
+ *               NOT_ENOUGH_QUANTITY:
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: NOT_ENOUGH_QUANTITY
+ *                     message: 판매 수량이 보유 수량을 초과했습니다.
+ *
+ *       401:
+ *         description: 인증 실패
+ *         content:
+ *           application/json:
+ *             examples:
+ *               ACCESS_TOKEN_EXPIRED:
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: ACCESS_TOKEN_EXPIRED
+ *                     message: Access Token이 만료되었습니다.
+ *
+ *               INVALID_ACCESS_TOKEN:
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_ACCESS_TOKEN
+ *                     message: 유효하지 않은 Access Token입니다.
+ *
+ *       403:
+ *         description: 본인 소유 카드가 아님
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: NOT_CARD_OWNER
+ *                 message: 본인이 소유한 카드만 판매할 수 있습니다.
+ *
+ *       500:
+ *         description: 서버 내부 오류
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INTERNAL_SERVER_ERROR
+ *                 message: 서버 내부 오류가 발생했습니다.
+ */
 router.post(
   '/',
   authenticate,
-  validateQuery(createSaleBodySchema),
+  validate(createSaleBodySchema),
   createSaleController,
 );
 

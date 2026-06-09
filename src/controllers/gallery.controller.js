@@ -1,5 +1,5 @@
 import { getCardsListService } from '../services/gallery.service.js';
-import { sendSuccess } from '../helpers/response.helper.js';
+import { sendSuccessWithMeta } from '../helpers/response.helper.js';
 
 export const getCardsController = async (req, res, next) => {
   try {

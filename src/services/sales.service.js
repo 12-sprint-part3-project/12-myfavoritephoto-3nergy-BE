@@ -52,7 +52,7 @@ export const getSalesListService = async (query) => {
   };
 };
 
-export const createSaleService = async ({ data }) => {
+export const createSaleService = async (data) => {
   const sale = await prisma.$transaction(async (tx) => {
     const ownedPhotocards = await findOwnedPhotocardsRepository(
       {
@@ -88,17 +88,34 @@ export const createSaleService = async ({ data }) => {
       },
       tx,
     );
+
+    await updateUserPhotocardsStatusRepository(
+      {
+        userPhotocardIds: selectedUserPhotocardIds,
+        status: 'ON_SALE',
+      },
+      tx,
+    );
+
+    return createdSale;
   });
 
-  await updateUserPhotocardsStatusRepository(
-    {
-      userPhotocardIds,
-      status: 'ON_SALE',
+  return {
+    data: {
+      sale: {
+        id: sale.id,
+        photocardId: sale.photocardId,
+        price: sale.price,
+        quantity: sale.quantity,
+        remainingQuantity: sale.remainingQuantity,
+        status: sale.status,
+        desiredGrade: sale.desiredGrade,
+        desiredGenre: sale.desiredGenre,
+        desiredDescription: sale.desiredDescription,
+        createdAt: sale.createdAt,
+      },
     },
-    tx,
-  );
-
-  return createdSale;
+  };
 };
 
 export const getMySalesService = async (query) => {

@@ -66,7 +66,7 @@ export const findSalesListRepository = async ({
   };
 };
 
-export const createSaleRepository = async ({ data, tx = prisma }) => {
+export const createSaleRepository = async (data, tx = prisma) => {
   return tx.sale.create({
     data,
   });
