@@ -1,3 +1,4 @@
+import { sendSuccess } from '../helpers/response.helper.js';
 import { getMyPoint } from '../services/point.service.js';
 
 export const getMyPointController = async (req, res, next) => {
@@ -6,12 +7,7 @@ export const getMyPointController = async (req, res, next) => {
 
     const result = await getMyPoint(userUuid);
 
-    return res.status(200).json({
-      success: true,
-      message: '내 포인트를 조회했습니다.',
-      data: result,
-      error: null,
-    });
+    return sendSuccess(res, 200, result);
   } catch (error) {
     next(error);
   }
