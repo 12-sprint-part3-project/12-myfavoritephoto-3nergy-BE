@@ -1,3 +1,4 @@
+import { sendSuccess } from '../helpers/response.helper.js';
 import {
   loginUser,
   logoutUser,
@@ -11,12 +12,7 @@ export const signup = async (req, res, next) => {
   try {
     const result = await signupUser(req.body);
 
-    return res.status(201).json({
-      success: true,
-      message: '회원가입이 완료되었습니다.',
-      data: result,
-      error: null,
-    });
+    return sendSuccess(res, 201, result);
   } catch (error) {
     next(error);
   }
@@ -33,14 +29,9 @@ export const login = async (req, res, next) => {
       maxAge: Number(process.env.COOKIE_MAX_AGE),
     });
 
-    return res.status(200).json({
-      success: true,
-      message: '로그인에 성공했습니다.',
-      data: {
-        accessToken,
-        user,
-      },
-      error: null,
+    return sendSuccess(res, 200, {
+      accessToken,
+      user,
     });
   } catch (error) {
     next(error);
@@ -59,12 +50,7 @@ export const logout = async (req, res, next) => {
       sameSite: process.env.COOKIE_SAME_SITE || 'lax',
     });
 
-    return res.status(200).json({
-      success: true,
-      message: '로그아웃 되었습니다.',
-      data: null,
-      error: null,
-    });
+    return sendSuccess(res, 200, null);
   } catch (error) {
     next(error);
   }
@@ -85,13 +71,8 @@ export const refreshAccessToken = async (req, res, next) => {
       maxAge: Number(process.env.COOKIE_MAX_AGE),
     });
 
-    return res.status(200).json({
-      success: true,
-      message: 'Access Token이 재발급되었습니다.',
-      data: {
-        accessToken,
-      },
-      error: null,
+    return sendSuccess(res, 200, {
+      accessToken,
     });
   } catch (error) {
     next(error);
@@ -124,14 +105,9 @@ export const googleCallbackLogin = async (req, res, next) => {
       maxAge: Number(process.env.COOKIE_MAX_AGE),
     });
 
-    return res.status(200).json({
-      success: true,
-      message: '구글 로그인에 성공했습니다.',
-      data: {
-        accessToken,
-        user,
-      },
-      error: null,
+    return sendSuccess(res, 200, {
+      accessToken,
+      user,
     });
   } catch (error) {
     next(error);
