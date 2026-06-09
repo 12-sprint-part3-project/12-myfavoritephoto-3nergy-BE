@@ -1,7 +1,7 @@
 import { buildPhotocardFilter } from '../lib/buildPhotocardFilter.js';
 import prisma from '../lib/prisma.js';
 
-export const findSalesList = async ({
+export const findSalesListRepository = async ({
   page,
   pageSize,
   grade,
@@ -66,7 +66,38 @@ export const findSalesList = async ({
   };
 };
 
-export const findMySales = async ({ userUuid, grade, genre, keyword }) => {
+export const createSaleRepository = async ({
+  userUuid,
+  photocardId,
+  price,
+  quantity,
+  remainingQuantity,
+  status,
+  desiredGrade,
+  desiredGenre,
+  desiredDescription,
+}) => {
+  return prisma.sale.create({
+    data: {
+      userUuid,
+      photocardId,
+      price,
+      quantity,
+      remainingQuantity,
+      status,
+      desiredGrade,
+      desiredGenre,
+      desiredDescription,
+    },
+  });
+};
+
+export const findMySalesRepository = async ({
+  userUuid,
+  grade,
+  genre,
+  keyword,
+}) => {
   const where = {
     userUuid,
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
@@ -85,7 +116,7 @@ export const findMySales = async ({ userUuid, grade, genre, keyword }) => {
   });
 };
 
-export const findMyPendingTrades = async ({
+export const findMyPendingTradesRepository = async ({
   userUuid,
   grade,
   genre,
@@ -114,7 +145,7 @@ export const findMyPendingTrades = async ({
   });
 };
 
-export const findSaleDetail = async (saleId) => {
+export const findSaleDetailRepository = async (saleId) => {
   return prisma.sale.findUnique({
     where: {
       id: saleId,

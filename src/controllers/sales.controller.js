@@ -1,12 +1,13 @@
 import {
-  getSalesList,
-  getSaleDetail as getSaleDetailService,
-  getMySales as getMySalesService,
+  getSalesListService,
+  getSaleDetailService,
+  getMySalesService,
+  createSaleService,
 } from '../services/sales.service.js';
 
-export const getSales = async (req, res, next) => {
+export const getSalesController = async (req, res, next) => {
   try {
-    const result = await getSalesList(req.validatedQuery);
+    const result = await getSalesListService(req.validatedQuery);
 
     return res.status(200).json({
       success: true,
@@ -20,10 +21,28 @@ export const getSales = async (req, res, next) => {
   }
 };
 
-export const getMySales = async (req, res, next) => {
+export const createSaleController = async (req, res, next) => {
+  try {
+    const result = await createSaleService({
+      userUuid: req.user.userUuid,
+      ...req.body,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: '판매 등록이 완료되었습니다.',
+      data: result.data,
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMySalesController = async (req, res, next) => {
   try {
     const result = await getMySalesService({
-      userUuid: req.user.userId,
+      userUuid: req.user.userUuid,
       ...req.validatedQuery,
     });
 
@@ -39,7 +58,7 @@ export const getMySales = async (req, res, next) => {
   }
 };
 
-export const getSaleDetail = async (req, res, next) => {
+export const getSaleDetailController = async (req, res, next) => {
   try {
     const { saleId } = req.params;
 

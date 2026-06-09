@@ -1,8 +1,9 @@
 import express from 'express';
 import {
-  getSales,
-  getSaleDetail,
-  getMySales,
+  getSalesController,
+  getSaleDetailController,
+  getMySalesController,
+  createSaleController,
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validateQuery } from '../middlewares/validate.middleware.js';
@@ -81,7 +82,14 @@ const router = express.Router();
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/', authenticate, validateQuery(getSalesListQuerySchema), getSales);
+router.get(
+  '/',
+  authenticate,
+  validateQuery(getSalesListQuerySchema),
+  getSalesController,
+);
+
+router.post('/', authenticate, createSaleController);
 
 /**
  * @swagger
@@ -213,7 +221,7 @@ router.get(
   '/me',
   authenticate,
   validateQuery(getMySalesQuerySchema),
-  getMySales,
+  getMySalesController,
 );
 
 /**
@@ -277,6 +285,6 @@ router.get(
  *       500:
  *         description: 서버 내부 오류
  */
-router.get('/:saleId', authenticate, getSaleDetail);
+router.get('/:saleId', authenticate, getSaleDetailController);
 
 export default router;

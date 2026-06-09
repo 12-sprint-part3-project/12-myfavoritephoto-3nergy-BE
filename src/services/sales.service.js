@@ -1,17 +1,17 @@
 import {
-  findSalesList,
-  findSaleDetail,
-  findMySales,
-  findMyPendingTrades,
+  findSalesListRepository,
+  findMySalesRepository,
+  findMyPendingTradesRepository,
+  findSaleDetailRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
 
-export const getSalesList = async (query) => {
+export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const { salesList, totalCount } = await findSalesList({
+  const { salesList, totalCount } = await findSalesListRepository({
     page,
     pageSize,
     grade: query.grade,
@@ -48,18 +48,57 @@ export const getSalesList = async (query) => {
   };
 };
 
-export const getMySales = async (query) => {
+export const createSaleService = async ({
+  userUuid,
+  photocardId,
+  price,
+  quantity,
+  desiredGrade,
+  desiredGenre,
+  desiredDescription,
+}) => {
+  const sale = await createSaleRepository({
+    userUuid,
+    photocardId,
+    price,
+    quantity,
+    remainingQuantity: quantity,
+    status: 'SALE',
+    desiredGrade,
+    desiredGenre,
+    desiredDescription,
+  });
+
+  return {
+    data: {
+      sale: {
+        id: sale.id,
+        photocardId: sale.photocardId,
+        price: sale.price,
+        quantity: sale.quantity,
+        remainingQuantity: sale.remainingQuantity,
+        status: sale.status,
+        desiredGrade: sale.desiredGrade,
+        desiredGenre: sale.desiredGenre,
+        desiredDescription: sale.desiredDescription,
+        createdAt: sale.createdAt,
+      },
+    },
+  };
+};
+
+export const getMySalesService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const mySalesList = await findMySales({
+  const mySalesList = await findMySalesRepository({
     userUuid: query.userUuid,
     grade: query.grade,
     genre: query.genre,
     keyword: query.keyword,
   });
 
-  const pendingTrades = await findMyPendingTrades({
+  const pendingTrades = await findMyPendingTradesRepository({
     userUuid: query.userUuid,
     grade: query.grade,
     genre: query.genre,
@@ -168,8 +207,8 @@ export const getMySales = async (query) => {
   };
 };
 
-export const getSaleDetail = async (saleId) => {
-  const sale = await findSaleDetail(Number(saleId));
+export const getSaleDetailService = async (saleId) => {
+  const sale = await findSaleDetailRepository(Number(saleId));
 
   if (!sale) {
     throw AppError(ERROR_CODES.SALE_NOT_FOUND);

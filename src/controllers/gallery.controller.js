@@ -3,7 +3,7 @@ import { getCardsList } from '../services/gallery.service.js';
 export const getCards = async (req, res, next) => {
   try {
     const result = await getCardsList({
-      userUuid: req.user.userId,
+      userUuid: req.user.userUuid,
       ...req.query,
     });
 
