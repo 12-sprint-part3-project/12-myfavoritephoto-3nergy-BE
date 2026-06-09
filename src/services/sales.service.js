@@ -2,10 +2,10 @@ import {
   findSalesListRepository,
   createSaleRepository,
   findOwnedPhotocardsRepository,
-  updateUserPhotocardsStatusRepository,
   findMySalesRepository,
   findMyPendingTradesRepository,
   findSaleDetailRepository,
+  updateUserPhotocardsStatusRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -273,6 +273,17 @@ export const getSaleDetailService = async (saleId) => {
         desiredGrade: sale.desiredGrade,
         desiredGenre: sale.desiredGenre,
         desiredDescription: sale.desiredDescription,
+      },
+    },
+  };
+};
+
+export const updateSaleService = async (saleId, userUuid, updateData) => {
+  return {
+    data: {
+      sale: {
+        id: saleId,
+        ...updateData,
       },
     },
   };

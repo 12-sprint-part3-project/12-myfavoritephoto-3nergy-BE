@@ -1,9 +1,10 @@
 import express from 'express';
 import {
   getSalesController,
-  getSaleDetailController,
-  getMySalesController,
   createSaleController,
+  getMySalesController,
+  getSaleDetailController,
+  updateSaleController,
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validate, validateQuery } from '../middlewares/validate.middleware.js';
@@ -428,4 +429,5 @@ router.get(
  */
 router.get('/:saleId', authenticate, getSaleDetailController);
 
+router.patch('/:saleId', authenticate, validate(), updateSaleController);
 export default router;
