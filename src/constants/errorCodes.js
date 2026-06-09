@@ -86,6 +86,12 @@ export const ERROR_CODES = {
     message: '이미 판매 중인 카드입니다.',
   },
 
+  PHOTOCARD_CREATION_LIMIT_EXCEEDED: {
+    statusCode: 409,
+    code: 'PHOTOCARD_CREATION_LIMIT_EXCEEDED',
+    message: '이번 달 포토카드 생성 가능 횟수를 초과했습니다.',
+  },
+
   // =========================
   // SALE
   // =========================
