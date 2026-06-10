@@ -308,6 +308,24 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
     throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
   }
 
+  if (filteredData.price !== undefined && filteredData.price < 0) {
+    throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+  }
+
+  if (filteredData.quantity !== undefined) {
+    if (filteredData.quantity < 1) {
+      throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+    }
+
+    const soldQuantity = sale.quantity - sale.remainingQuantity;
+
+    if (filteredData.quantity < soldQuantity) {
+      throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+    }
+
+    filteredData.remainingQuantity = filteredData.quantity - soldQuantity;
+  }
+
   const data = await updateSaleRepository(saleId, filteredData);
 
   return {
