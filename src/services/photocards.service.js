@@ -1,4 +1,13 @@
-import { findCardsListRepository } from '../repositories/gallery.repository.js';
+import { ERROR_CODES } from '../constants/errorCodes.js';
+import { AppError } from '../errors/AppError.js';
+import {
+  countMonthlyCreatedPhotocards,
+  createPhotocardWithUserCards,
+  findCardsListRepository,
+} from '../repositories/photocards.repository.js';
+import { getStartOfMonthKST } from '../helpers/date.helper.js';
+
+const MONTHLY_PHOTOCARD_CREATION_LIMIT = 3; // 월 3장 제한
 
 export const getCardsListService = async (query) => {
   const page = Number(query.page) || 1;
@@ -69,4 +78,26 @@ export const getCardsListService = async (query) => {
       hasNextPage: false,
     },
   };
+};
+
+// 포토카드 생성
+export const createPhotocard = async (userUuid, body) => {
+  const now = new Date();
+
+  //  매월 1일
+  const startOfMonth = getStartOfMonthKST();
+
+  const createdCount = await countMonthlyCreatedPhotocards({
+    userUuid,
+    startOfMonth,
+  });
+
+  if (createdCount >= MONTHLY_PHOTOCARD_CREATION_LIMIT) {
+    throw AppError(ERROR_CODES.PHOTOCARD_CREATION_LIMIT_EXCEEDED);
+  }
+
+  return createPhotocardWithUserCards({
+    userUuid,
+    ...body,
+  });
 };
