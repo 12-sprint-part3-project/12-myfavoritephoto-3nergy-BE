@@ -71,5 +71,6 @@ export const getMySalesQuerySchema = z.object({
     .enum(['true', 'false'], {
       message: '올바르지 않은 매진 여부입니다.',
     })
+    .transform((value) => value === 'true')
     .optional(),
 });
