@@ -1,4 +1,4 @@
-import { z } from 'Zod';
+import { z } from 'zod';
 
 const saleBodyFields = {
   price: z.coerce.number().int().min(0, '판매 가격은 0 이상이어야 합니다.'),

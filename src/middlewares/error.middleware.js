@@ -16,6 +16,9 @@ export const errorHandler = (error, req, res, next) => {
     error: {
       code,
       message,
+      ...(error.nextAvailableAt && {
+        nextAvailableAt: error.nextAvailableAt,
+      }),
     },
   });
 };

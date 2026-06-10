@@ -147,6 +147,15 @@ export const ERROR_CODES = {
   },
 
   // =========================
+  // EVENT
+  // =========================
+  EVENT_NOT_AVAILABLE: {
+    statusCode: 429,
+    code: 'EVENT_NOT_AVAILABLE',
+    message: '아직 이벤트에 참여할 수 없습니다.',
+  },
+
+  // =========================
   // TRADE
   // =========================
   TRADE_NOT_FOUND: {
