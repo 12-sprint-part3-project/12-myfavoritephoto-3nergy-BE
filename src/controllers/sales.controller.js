@@ -1,8 +1,9 @@
 import {
   getSalesListService,
-  getSaleDetailService,
-  getMySalesService,
   createSaleService,
+  getMySalesService,
+  getSaleDetailService,
+  updateSaleService,
 } from '../services/sales.service.js';
 import {
   sendSuccess,
@@ -50,6 +51,19 @@ export const getSaleDetailController = async (req, res, next) => {
     const { saleId } = req.params;
 
     const result = await getSaleDetailService(Number(saleId));
+
+    return sendSuccess(res, 200, result.data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateSaleController = async (req, res, next) => {
+  try {
+    const { saleId } = req.params;
+    const { userUuid } = req.user;
+
+    const result = await updateSaleService(Number(saleId), userUuid, req.body);
 
     return sendSuccess(res, 200, result.data);
   } catch (error) {

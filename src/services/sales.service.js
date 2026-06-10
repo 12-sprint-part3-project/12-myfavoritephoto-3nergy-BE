@@ -2,10 +2,12 @@ import {
   findSalesListRepository,
   createSaleRepository,
   findOwnedPhotocardsRepository,
-  updateUserPhotocardsStatusRepository,
   findMySalesRepository,
   findMyPendingTradesRepository,
   findSaleDetailRepository,
+  updateUserPhotocardsStatusRepository,
+  findSaleForUpdateRepository,
+  updateSaleRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -25,7 +27,7 @@ export const getSalesListService = async (query) => {
     sort: query.sort,
   });
 
-  const items = salesList.map((sale) => ({
+  const data = salesList.map((sale) => ({
     saleId: sale.id,
     price: sale.price,
     quantity: sale.quantity,
@@ -39,9 +41,7 @@ export const getSalesListService = async (query) => {
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return {
-    data: {
-      items,
-    },
+    data,
     meta: {
       page,
       pageSize,
@@ -178,13 +178,13 @@ export const getMySalesService = async (query) => {
     );
   }
 
-  if (query.isSoldOut === 'true') {
+  if (query.isSoldOut === true) {
     filteredMySales = filteredMySales.filter(
       (item) => item.displayStatus === 'SOLD_OUT',
     );
   }
 
-  if (query.isSoldOut === 'false') {
+  if (query.isSoldOut === false) {
     filteredMySales = filteredMySales.filter(
       (item) => item.displayStatus !== 'SOLD_OUT',
     );
@@ -245,35 +245,90 @@ export const getSaleDetailService = async (saleId) => {
     throw AppError(ERROR_CODES.SALE_NOT_FOUND);
   }
 
-  return {
-    data: {
-      sale: {
-        saleId: sale.id,
-        price: sale.price,
-        quantity: sale.quantity,
-        remainingQuantity: sale.remainingQuantity,
-        status: sale.status,
-        createdAt: sale.createdAt,
-        updatedAt: sale.updatedAt,
+  const data = {
+    saleId: sale.id,
+    price: sale.price,
+    quantity: sale.quantity,
+    remainingQuantity: sale.remainingQuantity,
+    status: sale.status,
+    createdAt: sale.createdAt,
+    updatedAt: sale.updatedAt,
 
-        photocard: {
-          id: sale.photocard.id,
-          name: sale.photocard.name,
-          imageUrl: sale.photocard.imageUrl,
-          description: sale.photocard.description,
-          grade: sale.photocard.grade,
-          genre: sale.photocard.genre,
-        },
-
-        seller: {
-          uuid: sale.seller.uuid,
-          nickname: sale.seller.nickname,
-        },
-
-        desiredGrade: sale.desiredGrade,
-        desiredGenre: sale.desiredGenre,
-        desiredDescription: sale.desiredDescription,
-      },
+    photocard: {
+      id: sale.photocard.id,
+      name: sale.photocard.name,
+      imageUrl: sale.photocard.imageUrl,
+      description: sale.photocard.description,
+      grade: sale.photocard.grade,
+      genre: sale.photocard.genre,
     },
+
+    seller: {
+      uuid: sale.seller.uuid,
+      nickname: sale.seller.nickname,
+    },
+
+    desiredGrade: sale.desiredGrade,
+    desiredGenre: sale.desiredGenre,
+    desiredDescription: sale.desiredDescription,
+  };
+
+  return {
+    data,
+  };
+};
+
+export const updateSaleService = async (saleId, userUuid, updateData) => {
+  const sale = await findSaleForUpdateRepository(saleId);
+  if (!sale) {
+    throw AppError(ERROR_CODES.SALE_NOT_FOUND, 404);
+  }
+
+  if (sale.userUuid !== userUuid) {
+    throw AppError(ERROR_CODES.NOT_SALE_OWNER, 403);
+  }
+
+  if (sale.status !== 'SALE') {
+    throw AppError(ERROR_CODES.SALE_NOT_EDITABLE, 409);
+  }
+
+  const allowedFields = [
+    'price',
+    'quantity',
+    'desiredGrade',
+    'desiredGenre',
+    'desiredDescription',
+  ];
+
+  const filteredData = Object.fromEntries(
+    Object.entries(updateData).filter(([key]) => allowedFields.includes(key)),
+  );
+
+  if (Object.keys(filteredData).length === 0) {
+    throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+  }
+
+  if (filteredData.price !== undefined && filteredData.price < 0) {
+    throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+  }
+
+  if (filteredData.quantity !== undefined) {
+    if (filteredData.quantity < 1) {
+      throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+    }
+
+    const soldQuantity = sale.quantity - sale.remainingQuantity;
+
+    if (filteredData.quantity < soldQuantity) {
+      throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+    }
+
+    filteredData.remainingQuantity = filteredData.quantity - soldQuantity;
+  }
+
+  const data = await updateSaleRepository(saleId, filteredData);
+
+  return {
+    data,
   };
 };
