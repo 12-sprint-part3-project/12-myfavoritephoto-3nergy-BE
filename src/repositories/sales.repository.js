@@ -215,7 +215,7 @@ export const updateSaleRepository = async (saleId, data) => {
       desiredGrade: true,
       desiredGenre: true,
       desiredDescription: true,
-      updateAt: true,
+      updatedAt: true,
     },
   });
 };

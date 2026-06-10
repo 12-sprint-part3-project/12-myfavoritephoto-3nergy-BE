@@ -12,7 +12,10 @@ import {
   getSalesListQuerySchema,
   getMySalesQuerySchema,
 } from '../validators/photocardQuery.schema.js';
-import { createSaleBodySchema } from '../validators/photocardBody.schema.js';
+import {
+  createSaleBodySchema,
+  updateSaleBodySchema,
+} from '../validators/photocardBody.schema.js';
 
 const router = express.Router();
 
@@ -572,7 +575,6 @@ router.get(
  *           application/json:
  *             example:
  *               success: true
- *               message: 판매 상세 조회에 성공했습니다.
  *               data:
  *                 saleId: 1
  *                 price: 1000
@@ -618,5 +620,210 @@ router.get(
  */
 router.get('/:saleId', authenticate, getSaleDetailController);
 
-router.patch('/:saleId', authenticate, validate(), updateSaleController);
+/**
+ * @swagger
+ * /api/sales/{saleId}:
+ *   patch:
+ *     summary: 판매글 수정
+ *     description: |
+ *       판매자가 본인의 판매글 정보를 수정합니다.
+ *
+ *       수정 가능한 항목은 판매 수량, 장당 가격, 교환 희망 등급, 교환 희망 장르, 교환 희망 설명입니다.
+ *       카드명, 카드 등급, 카드 장르, 카드 이미지 등 포토카드 자체 정보는 수정할 수 없습니다.
+ *
+ *       판매 중(SALE) 상태의 판매글만 수정할 수 있습니다.
+ *       판매 수량을 수정하는 경우 이미 판매된 수량보다 작은 값으로 수정할 수 없습니다.
+ *     tags:
+ *       - Sales
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: saleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: 수정할 판매글 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               price:
+ *                 type: integer
+ *                 minimum: 0
+ *                 example: 1500
+ *                 description: 장당 가격
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 example: 2
+ *                 description: 총 판매 수량
+ *               desiredGrade:
+ *                 type: string
+ *                 enum: [common, rare, super_rare, legendary]
+ *                 example: rare
+ *                 description: 교환 희망 등급
+ *               desiredGenre:
+ *                 type: string
+ *                 enum: [album, special, landscape, season_greeting, fan_meeting, concert, md, collage, branding, etc]
+ *                 example: album
+ *                 description: 교환 희망 장르
+ *               desiredDescription:
+ *                 type: string
+ *                 example: 희망 교환 조건을 수정합니다.
+ *                 description: 교환 희망 설명
+ *             example:
+ *               price: 1500
+ *               quantity: 2
+ *               desiredGrade: rare
+ *               desiredGenre: album
+ *               desiredDescription: 희망 교환 조건을 수정합니다.
+ *     responses:
+ *       200:
+ *         description: 판매글 수정 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sale:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 1
+ *                         price:
+ *                           type: integer
+ *                           example: 1500
+ *                         quantity:
+ *                           type: integer
+ *                           example: 2
+ *                         remainingQuantity:
+ *                           type: integer
+ *                           example: 2
+ *                         status:
+ *                           type: string
+ *                           example: SALE
+ *                         desiredGrade:
+ *                           type: string
+ *                           example: rare
+ *                         desiredGenre:
+ *                           type: string
+ *                           example: album
+ *                         desiredDescription:
+ *                           type: string
+ *                           example: 희망 교환 조건을 수정합니다.
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: 2026-06-02T08:30:00.000Z
+ *                 error:
+ *                   nullable: true
+ *                   example: null
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             examples:
+ *               InvalidSaleStatus:
+ *                 summary: 수정할 수 없는 판매 상태
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_SALE_STATUS
+ *                     message: 현재 상태에서는 판매글을 수정할 수 없습니다.
+ *               InvalidInput:
+ *                 summary: 입력값 검증 실패
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_INPUT
+ *                     message: 입력값이 올바르지 않습니다.
+ *       401:
+ *         description: 인증 실패
+ *         content:
+ *           application/json:
+ *             examples:
+ *               AccessTokenMissing:
+ *                 summary: Access Token 누락
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: ACCESS_TOKEN_MISSING
+ *                     message: Access Token이 필요합니다.
+ *               AccessTokenExpired:
+ *                 summary: Access Token 만료
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: ACCESS_TOKEN_EXPIRED
+ *                     message: Access Token이 만료되었습니다.
+ *               InvalidAccessToken:
+ *                 summary: 유효하지 않은 Access Token
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_ACCESS_TOKEN
+ *                     message: 유효하지 않은 Access Token입니다.
+ *       403:
+ *         description: 권한 없음
+ *         content:
+ *           application/json:
+ *             examples:
+ *               NotSaleOwner:
+ *                 summary: 판매자 본인이 아님
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: NOT_SALE_OWNER
+ *                     message: 본인의 판매글만 수정할 수 있습니다.
+ *       404:
+ *         description: 판매글을 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             examples:
+ *               SaleNotFound:
+ *                 summary: 판매글을 찾을 수 없음
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: SALE_NOT_FOUND
+ *                     message: 존재하지 않는 판매글입니다.
+ *       500:
+ *         description: 서버 내부 오류
+ *         content:
+ *           application/json:
+ *             examples:
+ *               InternalServerError:
+ *                 summary: 서버 내부 오류
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INTERNAL_SERVER_ERROR
+ *                     message: 서버 내부 오류가 발생했습니다.
+ */
+router.patch(
+  '/:saleId',
+  authenticate,
+  validate(updateSaleBodySchema),
+  updateSaleController,
+);
 export default router;

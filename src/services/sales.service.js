@@ -6,6 +6,7 @@ import {
   findMyPendingTradesRepository,
   findSaleDetailRepository,
   updateUserPhotocardsStatusRepository,
+  findSaleForUpdateRepository,
   updateSaleRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
@@ -279,17 +280,16 @@ export const getSaleDetailService = async (saleId) => {
 
 export const updateSaleService = async (saleId, userUuid, updateData) => {
   const sale = await findSaleForUpdateRepository(saleId);
-
   if (!sale) {
-    throw new AppError(ERROR_CODES.SALE_NOT_FOUND, 404);
+    throw AppError(ERROR_CODES.SALE_NOT_FOUND, 404);
   }
 
   if (sale.userUuid !== userUuid) {
-    throw new AppError(ERROR_CODES.NOT_SALE_OWNER, 403);
+    throw AppError(ERROR_CODES.NOT_SALE_OWNER, 403);
   }
 
   if (sale.status !== 'SALE') {
-    throw new AppError(ERROR_CODES.INVALID_SALE_STATUS, 400);
+    throw AppError(ERROR_CODES.INVALID_SALE_STATUS, 400);
   }
 
   const allowedFields = [

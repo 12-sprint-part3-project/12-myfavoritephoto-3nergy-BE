@@ -61,9 +61,9 @@ export const getSaleDetailController = async (req, res, next) => {
 export const updateSaleController = async (req, res, next) => {
   try {
     const { saleId } = req.params;
-    const { userId } = req.user;
+    const { userUuid } = req.user;
 
-    const result = await updateSaleService(Number(saleId), userId, req.body);
+    const result = await updateSaleService(Number(saleId), userUuid, req.body);
 
     return sendSuccess(res, 200, result.data);
   } catch (error) {
