@@ -289,7 +289,7 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
   }
 
   if (sale.status !== 'SALE') {
-    throw AppError(ERROR_CODES.INVALID_SALE_STATUS, 400);
+    throw AppError(ERROR_CODES.SALE_NOT_EDITABLE, 409);
   }
 
   const allowedFields = [
