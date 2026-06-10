@@ -88,3 +88,25 @@ export const signupSchema = z.object({
       '닉네임은 한글, 영문, 숫자, -, _ 만 사용할 수 있습니다.',
     ),
 });
+
+export const loginSchema = z.object({
+  email: z.preprocess(
+    (value) => value ?? '',
+    z
+      .string()
+      .trim()
+      .min(1, { message: '이메일을 입력해주세요.' })
+      .pipe(
+        z.email({
+          message: '올바른 이메일 형식이 아닙니다.',
+        }),
+      ),
+  ),
+
+  password: z.preprocess(
+    (value) => value ?? '',
+    z.string().min(1, {
+      message: '비밀번호를 입력해주세요.',
+    }),
+  ),
+});

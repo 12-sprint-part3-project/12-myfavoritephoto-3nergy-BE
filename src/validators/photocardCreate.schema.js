@@ -1,9 +1,12 @@
+import { z } from 'zod';
+
+const requiredString = (message) =>
+  z.preprocess((value) => value ?? '', z.string().trim().min(1, { message }));
+
 export const createPhotocardBodySchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, '포토카드 이름은 필수입니다.')
-    .max(100, '포토카드 이름은 100자 이하여야 합니다.'),
+  name: requiredString('포토카드 이름은 필수입니다.').pipe(
+    z.string().max(100, { message: '포토카드 이름은 100자 이하여야 합니다.' }),
+  ),
 
   grade: z.enum(['common', 'rare', 'super_rare', 'legendary'], {
     message: '올바르지 않은 등급입니다.',
@@ -38,11 +41,16 @@ export const createPhotocardBodySchema = z.object({
     .min(1, '총 발행 수량은 1 이상이어야 합니다.')
     .max(10, '카드당 최대 10장까지만 발행할 수 있습니다.'),
 
-  imageUrl: z
-    .string()
-    .trim()
-    .url('올바른 이미지 URL 형식이어야 합니다.')
-    .max(500, '이미지 URL은 500자 이하여야 합니다.'),
+  imageUrl: requiredString('이미지 URL은 필수입니다.').pipe(
+    z
+      .string()
+      .max(500, { message: '이미지 URL은 500자 이하여야 합니다.' })
+      .pipe(
+        z.url({
+          message: '올바른 이미지 URL 형식이어야 합니다.',
+        }),
+      ),
+  ),
 
   description: z
     .string()

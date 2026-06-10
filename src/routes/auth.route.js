@@ -8,7 +8,7 @@ import {
   googleCallbackLogin,
 } from '../controllers/auth.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
-import { signupSchema } from '../validators/auth.schema.js';
+import { loginSchema, signupSchema } from '../validators/auth.schema.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
@@ -82,7 +82,7 @@ router.post('/signup', validate(signupSchema), signup);
  *       401:
  *         description: 로그인 실패
  */
-router.post('/login', login);
+router.post('/login', validate(loginSchema), login);
 
 /**
  * @swagger

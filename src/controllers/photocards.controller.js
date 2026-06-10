@@ -1,5 +1,11 @@
-import { getCardsListService } from '../services/photocards.service.js';
-import { sendSuccessWithMeta } from '../helpers/response.helper.js';
+import {
+  createPhotocard,
+  getCardsListService,
+} from '../services/photocards.service.js';
+import {
+  sendSuccess,
+  sendSuccessWithMeta,
+} from '../helpers/response.helper.js';
 
 export const getCardsController = async (req, res, next) => {
   try {
@@ -9,6 +15,19 @@ export const getCardsController = async (req, res, next) => {
     });
 
     return sendSuccessWithMeta(res, 200, result.data, result.meta);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 포토카드 생성 컨트롤러
+export const createPhotocardController = async (req, res, next) => {
+  try {
+    const userUuid = req.user.userUuid;
+
+    const result = await createPhotocard(userUuid, req.body);
+
+    return sendSuccess(res, 201, result);
   } catch (error) {
     next(error);
   }

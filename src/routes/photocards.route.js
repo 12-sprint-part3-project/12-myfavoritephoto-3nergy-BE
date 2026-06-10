@@ -1,21 +1,25 @@
 import express from 'express';
-import { getCardsController } from '../controllers/photocards.controller.js';
+import {
+  createPhotocardController,
+  getCardsController,
+} from '../controllers/photocards.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import { validateQuery } from '../middlewares/validate.middleware.js';
+import { validate, validateQuery } from '../middlewares/validate.middleware.js';
 import { getGalleryListQuerySchema } from '../validators/photocardQuery.schema.js';
+import { createPhotocardBodySchema } from '../validators/photocardCreate.schema.js';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/gallery:
+ * /api/photocards:
  *   get:
  *     security:
  *       - bearerAuth: []
  *     summary: 보유 목록 조회
  *     description: 마이 갤러리에 등록된 보유 포토카드 목록을 조회합니다.
  *     tags:
- *       - MyGallery
+ *       - Photocard
  *     parameters:
  *       - in: query
  *         name: keyword
@@ -72,6 +76,81 @@ router.get(
   authenticate,
   validateQuery(getGalleryListQuerySchema),
   getCardsController,
+);
+/**
+ * @swagger
+ * /api/photocards:
+ *   post:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: 포토카드 생성
+ *     description: 새로운 포토카드를 생성하고 발행 수량만큼 소유 포토카드를 생성합니다.
+ *     tags:
+ *       - Photocard
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - grade
+ *               - genre
+ *               - price
+ *               - totalQuantity
+ *               - imageUrl
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: 우리집 앞마당
+ *                 description: 포토카드 이름
+ *               grade:
+ *                 type: string
+ *                 enum: [common, rare, super_rare, legendary]
+ *                 example: legendary
+ *                 description: 포토카드 등급
+ *               genre:
+ *                 type: string
+ *                 enum: [album, special, landscape, season_greeting, fan_meeting, concert, md, collage, branding, etc]
+ *                 example: landscape
+ *                 description: 포토카드 장르
+ *               price:
+ *                 type: integer
+ *                 minimum: 0
+ *                 example: 4
+ *                 description: 포토카드 가격
+ *               totalQuantity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 10
+ *                 example: 5
+ *                 description: 발행 수량
+ *               imageUrl:
+ *                 type: string
+ *                 example: https://example.com/images/card.png
+ *                 description: 포토카드 이미지 URL
+ *               description:
+ *                 type: string
+ *                 example: 우리집 앞마당 포토카드입니다.
+ *                 description: 포토카드 설명
+ *     responses:
+ *       201:
+ *         description: 포토카드 생성 성공
+ *       400:
+ *         description: 입력값 검증 실패
+ *       401:
+ *         description: 인증 실패
+ *       409:
+ *         description: 월간 포토카드 생성 제한 초과
+ *       500:
+ *         description: 서버 내부 오류
+ */
+router.post(
+  '/',
+  authenticate,
+  validate(createPhotocardBodySchema),
+  createPhotocardController,
 );
 
 export default router;
