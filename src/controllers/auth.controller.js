@@ -1,3 +1,7 @@
+import {
+  getClearRefreshTokenCookieOptions,
+  getRefreshTokenCookieOptions,
+} from '../helpers/cookie.helper.js';
 import { sendSuccess } from '../helpers/response.helper.js';
 import {
   loginUser,
@@ -22,12 +26,7 @@ export const login = async (req, res, next) => {
   try {
     const { accessToken, refreshToken, user } = await loginUser(req.body);
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: process.env.COOKIE_SAME_SITE || 'lax',
-      maxAge: Number(process.env.COOKIE_MAX_AGE),
-    });
+    res.cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions());
 
     return sendSuccess(res, 200, {
       accessToken,
@@ -44,11 +43,7 @@ export const logout = async (req, res, next) => {
 
     await logoutUser(refreshToken);
 
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: process.env.COOKIE_SAME_SITE || 'lax',
-    });
+    res.clearCookie('refreshToken', getClearRefreshTokenCookieOptions());
 
     return sendSuccess(res, 200, null);
   } catch (error) {
@@ -64,12 +59,7 @@ export const refreshAccessToken = async (req, res, next) => {
     const { accessToken, refreshToken: newRefreshToken } =
       await refreshTokenUser(refreshTokenValue);
 
-    res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: process.env.COOKIE_SAME_SITE || 'lax',
-      maxAge: Number(process.env.COOKIE_MAX_AGE),
-    });
+    res.cookie('refreshToken', newRefreshToken, getRefreshTokenCookieOptions());
 
     return sendSuccess(res, 200, {
       accessToken,
@@ -98,12 +88,7 @@ export const googleCallbackLogin = async (req, res, next) => {
     const { accessToken, refreshToken, user } = await googleCallback(code);
 
     // Refresh Token 을 HttpOnly Cookie 에 저장한다
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: process.env.COOKIE_SAME_SITE || 'lax',
-      maxAge: Number(process.env.COOKIE_MAX_AGE),
-    });
+    res.cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions());
 
     return sendSuccess(res, 200, {
       accessToken,
