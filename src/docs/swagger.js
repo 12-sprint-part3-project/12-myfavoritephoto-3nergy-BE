@@ -10,8 +10,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:8080',
-        description: 'Local server',
+        url: process.env.API_URL,
+        description: 'API Server',
       },
     ],
     components: {
