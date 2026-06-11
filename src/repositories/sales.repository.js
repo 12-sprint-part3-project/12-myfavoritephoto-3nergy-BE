@@ -72,6 +72,7 @@ export const createSaleRepository = async (data, tx = prisma) => {
   });
 };
 
+// 판매할 OWNED 포토카드 조회
 export const findOwnedPhotocardsRepository = async (
   { userUuid, photocardId },
   tx = prisma,
@@ -185,6 +186,7 @@ export const findSaleDetailRepository = async (saleId) => {
   });
 };
 
+// 수정할 판매글 조회
 export const findSaleForUpdateRepository = async (saleId) => {
   return prisma.sale.findUnique({
     where: {
@@ -193,6 +195,7 @@ export const findSaleForUpdateRepository = async (saleId) => {
     select: {
       id: true,
       userUuid: true,
+      photocardId: true,
       status: true,
       quantity: true,
       remainingQuantity: true,
@@ -232,6 +235,41 @@ export const cancelSaleRepository = async (saleId, tx = prisma) => {
       id: true,
       status: true,
       updatedAt: true,
+    },
+  });
+};
+
+// 수정할 ON_SALE 포토카드 조회
+export const findOnSaleUserPhotocardsRepository = async (
+  { ownerUuid, photocardId, quantity },
+  tx = prisma,
+) => {
+  return tx.userPhotocard.findMany({
+    where: {
+      ownerUuid,
+      photocardId,
+      status: 'ON_SALE',
+    },
+    select: {
+      id: true,
+    },
+    take: quantity,
+  });
+};
+
+// ON_SALE 상태 OWNED로 수정
+export const restoreUserPhotocardsRepository = async (
+  userPhotocardIds,
+  tx = prisma,
+) => {
+  return tx.userPhotocard.updateMany({
+    where: {
+      id: {
+        in: userPhotocardIds,
+      },
+    },
+    data: {
+      status: 'OWNED',
     },
   });
 };

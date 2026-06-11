@@ -8,6 +8,8 @@ import {
   updateUserPhotocardsStatusRepository,
   findSaleForUpdateRepository,
   updateSaleRepository,
+  findOnSaleUserPhotocardsRepository,
+  restoreUserPhotocardsRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -345,6 +347,20 @@ export const cancelSaleService = async (saleId, userUuid) => {
 
   const data = await prisma.$transaction(async (tx) => {
     const canceledSale = await cancelSaleRepository(saleId, tx);
+
+    const onSaleCards = await findOnSaleUserPhotocardsRepository(
+      {
+        ownerUuid: sale.userUuid,
+        photocardId: sale.photocardId,
+        quantity: sale.quantity,
+      },
+      tx,
+    );
+
+    await restoreUserPhotocardsRepository(
+      onSaleCards.map((card) => card.id),
+      tx,
+    );
 
     return canceledSale;
   });
