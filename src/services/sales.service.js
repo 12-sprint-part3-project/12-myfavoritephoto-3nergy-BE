@@ -332,3 +332,5 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
     data,
   };
 };
+
+export const cancelSaleService = async (saleId, userUuid) => {};

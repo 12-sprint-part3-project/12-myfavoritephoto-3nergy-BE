@@ -219,3 +219,19 @@ export const updateSaleRepository = async (saleId, data) => {
     },
   });
 };
+
+export const cancelSaleRepository = async (saleId, tx = prisma) => {
+  return tx.sale.update({
+    where: {
+      id: saleId,
+    },
+    data: {
+      status: 'CANCELED',
+    },
+    select: {
+      id: true,
+      status: true,
+      updatedAt: true,
+    },
+  });
+};

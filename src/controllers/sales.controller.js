@@ -4,6 +4,7 @@ import {
   getMySalesService,
   getSaleDetailService,
   updateSaleService,
+  cancelSaleService,
 } from '../services/sales.service.js';
 import {
   sendSuccess,
@@ -64,6 +65,19 @@ export const updateSaleController = async (req, res, next) => {
     const { userUuid } = req.user;
 
     const result = await updateSaleService(Number(saleId), userUuid, req.body);
+
+    return sendSuccess(res, 200, result.data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const cancelSaleController = async (req, res, next) => {
+  try {
+    const { saleId } = req.params;
+    const { userUuid } = req.user;
+
+    const result = await cancelSaleService(Number(saleId), userUuid);
 
     return sendSuccess(res, 200, result.data);
   } catch (error) {

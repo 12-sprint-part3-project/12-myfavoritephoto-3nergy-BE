@@ -5,6 +5,7 @@ import {
   getMySalesController,
   getSaleDetailController,
   updateSaleController,
+  cancelSaleController,
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validate, validateQuery } from '../middlewares/validate.middleware.js';
@@ -827,3 +828,5 @@ router.patch(
   updateSaleController,
 );
 export default router;
+
+router.patch('/:saleId/cancel', authenticate, cancelSaleController);
