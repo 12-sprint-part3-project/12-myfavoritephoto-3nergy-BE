@@ -29,7 +29,7 @@ export const findRewardStateByUserUuid = async (userUuid) => {
 // 1. 포인트 잔액 증가
 // 2. 포인트 내역 생성
 // 3. 마지막 이벤트 참여 시간 갱신
-export const rewardEventPoint = async ({ userUuid, point, now }) => {
+export const rewardEventPointTransaction = async ({ userUuid, point, now }) => {
   return prisma.$transaction(async (tx) => {
     const updatedUserPoint = await tx.userPoint.update({
       where: {

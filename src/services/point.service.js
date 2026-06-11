@@ -7,7 +7,8 @@ import {
 } from '../repositories/point.repository.js';
 
 const EVENT_COOLDOWN_MS = 60 * 60 * 1000; // 1시간
-const EVENT_POINT_BOXES = [1, 2, 3];
+const MIN_EVENT_POINT = 10;
+const MAX_EVENT_POINT = 50;
 
 export const getMyPoint = async (userUuid) => {
   const userPoint = await findMyPointByUserUuid(userUuid);
@@ -22,24 +23,15 @@ export const getMyPoint = async (userUuid) => {
   };
 };
 
-// 각 상자에 배치될 포인트를 랜덤 순서로 섞는다.
-// sort(() => Math.random() - 0.5)는 균등 셔플이 아니므로 Fisher-Yates 방식 사용
-const shufflePoints = (points) => {
-  const shuffledPoints = [...points];
-
-  for (let i = shuffledPoints.length - 1; i > 0; i -= 1) {
-    const randomIndex = Math.floor(Math.random() * (i + 1));
-
-    [shuffledPoints[i], shuffledPoints[randomIndex]] = [
-      shuffledPoints[randomIndex],
-      shuffledPoints[i],
-    ];
-  }
-
-  return shuffledPoints;
+// 이벤트 지급 포인트를 랜덤으로 결정한다.
+const getRandomEventPoint = () => {
+  return (
+    Math.floor(Math.random() * (MAX_EVENT_POINT - MIN_EVENT_POINT + 1)) +
+    MIN_EVENT_POINT
+  );
 };
 
-// 마지막 참여 시간 기준으로 다음 참여 가능 시간을 계산한다
+// 마지막 참여 시간 기준으로 다음 참여 가능 시간을 계산한다.
 const getNextAvailableAt = (lastDrawAt) => {
   return new Date(lastDrawAt.getTime() + EVENT_COOLDOWN_MS);
 };
@@ -55,15 +47,8 @@ const validateEventAvailability = (rewardState, now) => {
   }
 };
 
-// 선택한 상자 번호에 해당하는 이벤트 포인트를 결정한다.
-const getSelectedBoxPoint = (boxNumber) => {
-  const shuffledPoints = shufflePoints(EVENT_POINT_BOXES);
-
-  return shuffledPoints[boxNumber - 1];
-};
-
 // 이벤트 포인트 지급 전체 흐름을 처리한다.
-export const rewardEventPointUser = async (userUuid, boxNumber) => {
+export const rewardEventPointUser = async (userUuid) => {
   const now = new Date();
 
   // 마지막 이벤트 참여 상태 조회
@@ -72,8 +57,8 @@ export const rewardEventPointUser = async (userUuid, boxNumber) => {
   // 1시간 참여 제한 검증
   validateEventAvailability(rewardState, now);
 
-  // 선택한 상자의 지급 포인트 결정
-  const point = getSelectedBoxPoint(boxNumber);
+  // 이벤트 지급 포인트를 랜덤으로 결정한다.
+  const point = getRandomEventPoint();
 
   // 포인트 지급, 포인트 내역 생성, 마지막 참여 시간 갱신
   const { balance } = await rewardEventPointTransaction({
