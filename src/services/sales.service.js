@@ -9,7 +9,6 @@ import {
   findSaleForUpdateRepository,
   updateSaleRepository,
   findOnSaleUserPhotocardsRepository,
-  restoreUserPhotocardsRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -60,6 +59,7 @@ export const createSaleService = async (data) => {
       {
         userUuid: data.userUuid,
         photocardId: data.photocardId,
+        quantity: data.quantity,
       },
       tx,
     );
@@ -72,9 +72,7 @@ export const createSaleService = async (data) => {
       throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
     }
 
-    const selectedUserPhotocardIds = ownedPhotocards
-      .slice(0, data.quantity)
-      .map((card) => card.id);
+    const selectedUserPhotocardIds = ownedPhotocards.map((card) => card.id);
 
     const createdSale = await createSaleRepository(
       {
@@ -314,7 +312,7 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
   );
 
   if (Object.keys(filteredData).length === 0) {
-    throw new AppError(ERROR_CODES.INVALID_INPUT);
+    throw AppError(ERROR_CODES.INVALID_INPUT);
   }
 
   if (filteredData.price !== undefined && filteredData.price < 0) {
@@ -357,8 +355,17 @@ export const cancelSaleService = async (saleId, userUuid) => {
       tx,
     );
 
-    await restoreUserPhotocardsRepository(
-      onSaleCards.map((card) => card.id),
+    if (onSaleCards.length < sale.quantity) {
+      throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+    }
+
+    const selectedUserPhotocardIds = onSaleCards.map((card) => card.id);
+
+    await updateUserPhotocardsStatusRepository(
+      {
+        userPhotocardIds: selectedUserPhotocardIds,
+        status: 'OWNED',
+      },
       tx,
     );
 

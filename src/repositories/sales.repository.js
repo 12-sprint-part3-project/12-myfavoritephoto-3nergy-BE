@@ -74,7 +74,7 @@ export const createSaleRepository = async (data, tx = prisma) => {
 
 // 판매할 OWNED 포토카드 조회
 export const findOwnedPhotocardsRepository = async (
-  { userUuid, photocardId },
+  { userUuid, photocardId, quantity },
   tx = prisma,
 ) => {
   return tx.userPhotocard.findMany({
@@ -87,9 +87,11 @@ export const findOwnedPhotocardsRepository = async (
       id: true,
       photocardId: true,
     },
+    take: quantity,
   });
 };
 
+// 포토카드 상태 변경
 export const updateUserPhotocardsStatusRepository = async (
   { userPhotocardIds, status },
   tx = prisma,
@@ -254,22 +256,5 @@ export const findOnSaleUserPhotocardsRepository = async (
       id: true,
     },
     take: quantity,
-  });
-};
-
-// ON_SALE 상태 OWNED로 수정
-export const restoreUserPhotocardsRepository = async (
-  userPhotocardIds,
-  tx = prisma,
-) => {
-  return tx.userPhotocard.updateMany({
-    where: {
-      id: {
-        in: userPhotocardIds,
-      },
-    },
-    data: {
-      status: 'OWNED',
-    },
   });
 };
