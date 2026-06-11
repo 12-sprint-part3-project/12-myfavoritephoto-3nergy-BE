@@ -8,6 +8,8 @@ import {
   updateUserPhotocardsStatusRepository,
   findSaleForUpdateRepository,
   updateSaleRepository,
+  findOnSaleUserPhotocardsRepository,
+  cancelSaleRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -58,6 +60,7 @@ export const createSaleService = async (data) => {
       {
         userUuid: data.userUuid,
         photocardId: data.photocardId,
+        quantity: data.quantity,
       },
       tx,
     );
@@ -70,9 +73,7 @@ export const createSaleService = async (data) => {
       throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
     }
 
-    const selectedUserPhotocardIds = ownedPhotocards
-      .slice(0, data.quantity)
-      .map((card) => card.id);
+    const selectedUserPhotocardIds = ownedPhotocards.map((card) => card.id);
 
     const createdSale = await createSaleRepository(
       {
@@ -278,19 +279,26 @@ export const getSaleDetailService = async (saleId) => {
   };
 };
 
-export const updateSaleService = async (saleId, userUuid, updateData) => {
+const getEditableSale = async (saleId, userUuid) => {
   const sale = await findSaleForUpdateRepository(saleId);
+
   if (!sale) {
-    throw AppError(ERROR_CODES.SALE_NOT_FOUND, 404);
+    throw AppError(ERROR_CODES.SALE_NOT_FOUND);
   }
 
   if (sale.userUuid !== userUuid) {
-    throw AppError(ERROR_CODES.NOT_SALE_OWNER, 403);
+    throw AppError(ERROR_CODES.NOT_SALE_OWNER);
   }
 
   if (sale.status !== 'SALE') {
-    throw AppError(ERROR_CODES.SALE_NOT_EDITABLE, 409);
+    throw AppError(ERROR_CODES.SALE_NOT_EDITABLE);
   }
+
+  return sale;
+};
+
+export const updateSaleService = async (saleId, userUuid, updateData) => {
+  const sale = await getEditableSale(saleId, userUuid);
 
   const allowedFields = [
     'price',
@@ -305,28 +313,131 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
   );
 
   if (Object.keys(filteredData).length === 0) {
-    throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+    throw AppError(ERROR_CODES.INVALID_INPUT);
   }
 
   if (filteredData.price !== undefined && filteredData.price < 0) {
-    throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+    throw AppError(ERROR_CODES.INVALID_INPUT);
   }
 
-  if (filteredData.quantity !== undefined) {
-    if (filteredData.quantity < 1) {
-      throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+  const data = await prisma.$transaction(async (tx) => {
+    if (filteredData.quantity !== undefined) {
+      if (filteredData.quantity < 1) {
+        throw AppError(ERROR_CODES.INVALID_INPUT);
+      }
+
+      // 이미 판매된 수량 계산
+      const soldQuantity = sale.quantity - sale.remainingQuantity;
+
+      if (filteredData.quantity < soldQuantity) {
+        throw AppError(ERROR_CODES.INVALID_INPUT);
+      }
+
+      // 판매 수량 증감 계산
+      const quantityDiff = filteredData.quantity - sale.quantity;
+
+      // 이미 판매된 수량은 유지한 채
+      // 남은 판매 수량 재계산
+      filteredData.remainingQuantity = filteredData.quantity - soldQuantity;
+
+      // 판매 수량 증가
+      // 추가 판매할 카드 수만큼 OWNED → ON_SALE 변경
+      if (quantityDiff > 0) {
+        // 추가 판매에 사용할 OWNED 카드 조회
+        const ownedPhotocards = await findOwnedPhotocardsRepository(
+          {
+            userUuid,
+            photocardId: sale.photocardId,
+            quantity: quantityDiff,
+          },
+          tx,
+        );
+
+        // 추가 판매 수량보다 보유 카드가 적으면 실패
+        if (ownedPhotocards.length < quantityDiff) {
+          throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+        }
+
+        // 추가 판매 카드 상태를 ON_SALE로 변경
+        await updateUserPhotocardsStatusRepository(
+          {
+            userPhotocardIds: ownedPhotocards.map((card) => card.id),
+            status: 'ON_SALE',
+          },
+          tx,
+        );
+      }
+
+      // 판매 수량 감소
+      // 감소한 수량만큼 ON_SALE → OWNED 복구
+      if (quantityDiff < 0) {
+        // 감소한 판매 수량 절대값 계산
+        const restoreQuantity = Math.abs(quantityDiff);
+
+        // 판매 취소할 ON_SALE 카드 조회
+        const onSaleCards = await findOnSaleUserPhotocardsRepository(
+          {
+            ownerUuid: userUuid,
+            photocardId: sale.photocardId,
+            quantity: restoreQuantity,
+          },
+          tx,
+        );
+
+        if (onSaleCards.length < restoreQuantity) {
+          throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+        }
+
+        // 판매 대상 카드 상태를 OWNED로 복구
+        await updateUserPhotocardsStatusRepository(
+          {
+            userPhotocardIds: onSaleCards.map((card) => card.id),
+            status: 'OWNED',
+          },
+          tx,
+        );
+      }
+    }
+    return updateSaleRepository(saleId, filteredData, tx);
+  });
+  return {
+    data,
+  };
+};
+
+export const cancelSaleService = async (saleId, userUuid) => {
+  const sale = await getEditableSale(saleId, userUuid);
+
+  // 판매글 수정과 포토카드 상태 변경을
+  // 하나의 트랜잭션으로 처리
+  const data = await prisma.$transaction(async (tx) => {
+    const canceledSale = await cancelSaleRepository(saleId, tx);
+
+    const onSaleCards = await findOnSaleUserPhotocardsRepository(
+      {
+        ownerUuid: sale.userUuid,
+        photocardId: sale.photocardId,
+        quantity: sale.remainingQuantity,
+      },
+      tx,
+    );
+
+    if (onSaleCards.length < sale.remainingQuantity) {
+      throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
     }
 
-    const soldQuantity = sale.quantity - sale.remainingQuantity;
+    const selectedUserPhotocardIds = onSaleCards.map((card) => card.id);
 
-    if (filteredData.quantity < soldQuantity) {
-      throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
-    }
+    await updateUserPhotocardsStatusRepository(
+      {
+        userPhotocardIds: selectedUserPhotocardIds,
+        status: 'OWNED',
+      },
+      tx,
+    );
 
-    filteredData.remainingQuantity = filteredData.quantity - soldQuantity;
-  }
-
-  const data = await updateSaleRepository(saleId, filteredData);
+    return canceledSale;
+  });
 
   return {
     data,

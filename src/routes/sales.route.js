@@ -5,6 +5,7 @@ import {
   getMySalesController,
   getSaleDetailController,
   updateSaleController,
+  cancelSaleController,
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validate, validateQuery } from '../middlewares/validate.middleware.js';
@@ -827,3 +828,148 @@ router.patch(
   updateSaleController,
 );
 export default router;
+
+/**
+ * @swagger
+ * /api/sales/{saleId}/cancel:
+ *   patch:
+ *     summary: 판매 중단
+ *     description: |
+ *       판매자가 본인의 판매글을 중단합니다.
+ *       판매 중단 시 판매글 상태는 CANCELED로 변경되고,
+ *       남은 판매 수량만큼 UserPhotocard 상태가 OWNED로 복구됩니다.
+ *     tags:
+ *       - Sales
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: saleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 266
+ *         description: 판매 중단할 판매글 ID
+ *     responses:
+ *       200:
+ *         description: 판매 중단 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 266
+ *                     status:
+ *                       type: string
+ *                       example: CANCELED
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2026-06-11T06:07:01.435Z
+ *                 error:
+ *                   nullable: true
+ *                   example: null
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             examples:
+ *               NotEnoughQuantity:
+ *                 summary: 판매 수량과 카드 상태 불일치
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: NOT_ENOUGH_QUANTITY
+ *                     message: 판매 수량이 보유 수량을 초과했습니다.
+ *       401:
+ *         description: 인증 실패
+ *         content:
+ *           application/json:
+ *             examples:
+ *               AccessTokenMissing:
+ *                 summary: Access Token 누락
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: ACCESS_TOKEN_MISSING
+ *                     message: Access Token이 필요합니다.
+ *               AccessTokenExpired:
+ *                 summary: Access Token 만료
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: ACCESS_TOKEN_EXPIRED
+ *                     message: Access Token이 만료되었습니다.
+ *               InvalidAccessToken:
+ *                 summary: 유효하지 않은 Access Token
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_ACCESS_TOKEN
+ *                     message: 유효하지 않은 Access Token입니다.
+ *       403:
+ *         description: 권한 없음
+ *         content:
+ *           application/json:
+ *             examples:
+ *               NotSaleOwner:
+ *                 summary: 판매자 본인이 아님
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: NOT_SALE_OWNER
+ *                     message: 본인의 판매글만 수정할 수 있습니다.
+ *       404:
+ *         description: 판매글을 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             examples:
+ *               SaleNotFound:
+ *                 summary: 판매글을 찾을 수 없음
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: SALE_NOT_FOUND
+ *                     message: 존재하지 않는 판매글입니다.
+ *       409:
+ *         description: 판매 중단 불가 상태
+ *         content:
+ *           application/json:
+ *             examples:
+ *               SaleNotEditable:
+ *                 summary: 판매 중단 불가 상태
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: SALE_NOT_EDITABLE
+ *                     message: 현재 상태에서는 판매글을 수정할 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류
+ *         content:
+ *           application/json:
+ *             examples:
+ *               InternalServerError:
+ *                 summary: 서버 내부 오류
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INTERNAL_SERVER_ERROR
+ *                     message: 서버 내부 오류가 발생했습니다.
+ */
+router.patch('/:saleId/cancel', authenticate, cancelSaleController);
