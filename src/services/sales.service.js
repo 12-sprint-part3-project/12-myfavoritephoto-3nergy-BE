@@ -278,19 +278,26 @@ export const getSaleDetailService = async (saleId) => {
   };
 };
 
-export const updateSaleService = async (saleId, userUuid, updateData) => {
+const getEditableSale = async (saleId, userUuid) => {
   const sale = await findSaleForUpdateRepository(saleId);
+
   if (!sale) {
-    throw AppError(ERROR_CODES.SALE_NOT_FOUND, 404);
+    throw AppError(ERROR_CODES.SALE_NOT_FOUND);
   }
 
   if (sale.userUuid !== userUuid) {
-    throw AppError(ERROR_CODES.NOT_SALE_OWNER, 403);
+    throw AppError(ERROR_CODES.NOT_SALE_OWNER);
   }
 
   if (sale.status !== 'SALE') {
-    throw AppError(ERROR_CODES.SALE_NOT_EDITABLE, 409);
+    throw AppError(ERROR_CODES.SALE_NOT_EDITABLE);
   }
+
+  return sale;
+};
+
+export const updateSaleService = async (saleId, userUuid, updateData) => {
+  const sale = await getEditableSale(saleId, userUuid);
 
   const allowedFields = [
     'price',
@@ -305,22 +312,22 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
   );
 
   if (Object.keys(filteredData).length === 0) {
-    throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+    throw new AppError(ERROR_CODES.INVALID_INPUT);
   }
 
   if (filteredData.price !== undefined && filteredData.price < 0) {
-    throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+    throw AppError(ERROR_CODES.INVALID_INPUT);
   }
 
   if (filteredData.quantity !== undefined) {
     if (filteredData.quantity < 1) {
-      throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+      throw AppError(ERROR_CODES.INVALID_INPUT);
     }
 
     const soldQuantity = sale.quantity - sale.remainingQuantity;
 
     if (filteredData.quantity < soldQuantity) {
-      throw new AppError(ERROR_CODES.INVALID_INPUT, 400);
+      throw AppError(ERROR_CODES.INVALID_INPUT);
     }
 
     filteredData.remainingQuantity = filteredData.quantity - soldQuantity;
@@ -333,4 +340,16 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
   };
 };
 
-export const cancelSaleService = async (saleId, userUuid) => {};
+export const cancelSaleService = async (saleId, userUuid) => {
+  const sale = await getEditableSale(saleId, userUuid);
+
+  const data = await prisma.$transaction(async (tx) => {
+    const canceledSale = await cancelSaleRepository(saleId, tx);
+
+    return canceledSale;
+  });
+
+  return {
+    data,
+  };
+};
