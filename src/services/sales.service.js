@@ -326,17 +326,24 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
         throw AppError(ERROR_CODES.INVALID_INPUT);
       }
 
+      // 이미 판매된 수량 계산
       const soldQuantity = sale.quantity - sale.remainingQuantity;
 
       if (filteredData.quantity < soldQuantity) {
         throw AppError(ERROR_CODES.INVALID_INPUT);
       }
 
+      // 판매 수량 증감 계산
       const quantityDiff = filteredData.quantity - sale.quantity;
 
+      // 이미 판매된 수량은 유지한 채
+      // 남은 판매 수량 재계산
       filteredData.remainingQuantity = filteredData.quantity - soldQuantity;
 
+      // 판매 수량 증가
+      // 추가 판매할 카드 수만큼 OWNED → ON_SALE 변경
       if (quantityDiff > 0) {
+        // 추가 판매에 사용할 OWNED 카드 조회
         const ownedPhotocards = await findOwnedPhotocardsRepository(
           {
             userUuid,
@@ -346,10 +353,12 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
           tx,
         );
 
+        // 추가 판매 수량보다 보유 카드가 적으면 실패
         if (ownedPhotocards.length < quantityDiff) {
           throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
         }
 
+        // 추가 판매 카드 상태를 ON_SALE로 변경
         await updateUserPhotocardsStatusRepository(
           {
             userPhotocardIds: ownedPhotocards.map((card) => card.id),
@@ -359,9 +368,13 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
         );
       }
 
+      // 판매 수량 감소
+      // 감소한 수량만큼 ON_SALE → OWNED 복구
       if (quantityDiff < 0) {
+        // 감소한 판매 수량 절대값 계산
         const restoreQuantity = Math.abs(quantityDiff);
 
+        // 판매 취소할 ON_SALE 카드 조회
         const onSaleCards = await findOnSaleUserPhotocardsRepository(
           {
             ownerUuid: userUuid,
@@ -370,10 +383,12 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
           },
           tx,
         );
+
         if (onSaleCards.length < restoreQuantity) {
           throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
         }
 
+        // 판매 대상 카드 상태를 OWNED로 복구
         await updateUserPhotocardsStatusRepository(
           {
             userPhotocardIds: onSaleCards.map((card) => card.id),
@@ -382,8 +397,8 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
           tx,
         );
       }
-      return updateSaleRepository(saleId, filteredData, tx);
     }
+    return updateSaleRepository(saleId, filteredData, tx);
   });
   return {
     data,
@@ -393,6 +408,8 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
 export const cancelSaleService = async (saleId, userUuid) => {
   const sale = await getEditableSale(saleId, userUuid);
 
+  // 판매글 수정과 포토카드 상태 변경을
+  // 하나의 트랜잭션으로 처리
   const data = await prisma.$transaction(async (tx) => {
     const canceledSale = await cancelSaleRepository(saleId, tx);
 

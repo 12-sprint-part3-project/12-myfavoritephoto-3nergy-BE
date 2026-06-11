@@ -116,6 +116,9 @@ export const findMySalesRepository = async ({
 }) => {
   const where = {
     userUuid,
+    status: {
+      in: ['SALE', 'SOLD_OUT'],
+    },
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
