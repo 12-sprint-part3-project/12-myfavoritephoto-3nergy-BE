@@ -4,5 +4,9 @@ export const AppError = (errorInfo) => {
   error.statusCode = errorInfo.statusCode;
   error.code = errorInfo.code;
 
+  if (errorInfo.nextAvailableAt) {
+    error.nextAvailableAt = errorInfo.nextAvailableAt;
+  }
+
   return error;
 };
