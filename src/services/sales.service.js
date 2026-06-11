@@ -9,6 +9,7 @@ import {
   findSaleForUpdateRepository,
   updateSaleRepository,
   findOnSaleUserPhotocardsRepository,
+  cancelSaleRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -319,22 +320,71 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
     throw AppError(ERROR_CODES.INVALID_INPUT);
   }
 
-  if (filteredData.quantity !== undefined) {
-    if (filteredData.quantity < 1) {
-      throw AppError(ERROR_CODES.INVALID_INPUT);
+  const data = await prisma.$transaction(async (tx) => {
+    if (filteredData.quantity !== undefined) {
+      if (filteredData.quantity < 1) {
+        throw AppError(ERROR_CODES.INVALID_INPUT);
+      }
+
+      const soldQuantity = sale.quantity - sale.remainingQuantity;
+
+      if (filteredData.quantity < soldQuantity) {
+        throw AppError(ERROR_CODES.INVALID_INPUT);
+      }
+
+      const quantityDiff = filteredData.quantity - sale.quantity;
+
+      filteredData.remainingQuantity = filteredData.quantity - soldQuantity;
+
+      if (quantityDiff > 0) {
+        const ownedPhotocards = await findOwnedPhotocardsRepository(
+          {
+            userUuid,
+            photocardId: sale.photocardId,
+            quantity: quantityDiff,
+          },
+          tx,
+        );
+
+        if (ownedPhotocards.length < quantityDiff) {
+          throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+        }
+
+        await updateUserPhotocardsStatusRepository(
+          {
+            userPhotocardIds: ownedPhotocards.map((card) => card.id),
+            status: 'ON_SALE',
+          },
+          tx,
+        );
+      }
+
+      if (quantityDiff < 0) {
+        const restoreQuantity = Math.abs(quantityDiff);
+
+        const onSaleCards = await findOnSaleUserPhotocardsRepository(
+          {
+            ownerUuid: userUuid,
+            photocardId: sale.photocardId,
+            quantity: restoreQuantity,
+          },
+          tx,
+        );
+        if (onSaleCards.length < restoreQuantity) {
+          throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+        }
+
+        await updateUserPhotocardsStatusRepository(
+          {
+            userPhotocardIds: onSaleCards.map((card) => card.id),
+            status: 'OWNED',
+          },
+          tx,
+        );
+      }
+      return updateSaleRepository(saleId, filteredData, tx);
     }
-
-    const soldQuantity = sale.quantity - sale.remainingQuantity;
-
-    if (filteredData.quantity < soldQuantity) {
-      throw AppError(ERROR_CODES.INVALID_INPUT);
-    }
-
-    filteredData.remainingQuantity = filteredData.quantity - soldQuantity;
-  }
-
-  const data = await updateSaleRepository(saleId, filteredData);
-
+  });
   return {
     data,
   };
@@ -350,12 +400,12 @@ export const cancelSaleService = async (saleId, userUuid) => {
       {
         ownerUuid: sale.userUuid,
         photocardId: sale.photocardId,
-        quantity: sale.quantity,
+        quantity: sale.remainingQuantity,
       },
       tx,
     );
 
-    if (onSaleCards.length < sale.quantity) {
+    if (onSaleCards.length < sale.remainingQuantity) {
       throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
     }
 

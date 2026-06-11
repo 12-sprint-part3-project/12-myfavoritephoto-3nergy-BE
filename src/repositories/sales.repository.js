@@ -205,8 +205,8 @@ export const findSaleForUpdateRepository = async (saleId) => {
   });
 };
 
-export const updateSaleRepository = async (saleId, data) => {
-  return prisma.sale.update({
+export const updateSaleRepository = async (saleId, data, tx = prisma) => {
+  return tx.sale.update({
     where: {
       id: saleId,
     },

@@ -829,4 +829,39 @@ router.patch(
 );
 export default router;
 
+/**
+ * @swagger
+ * /api/sales/{saleId}/cancel:
+ *   patch:
+ *     summary: 판매 중단
+ *     description: |
+ *       판매자가 본인의 판매글을 중단합니다.
+ *       판매 중단 시 판매글 상태는 CANCELED로 변경되고,
+ *       판매에 사용된 UserPhotocard 상태는 OWNED로 복구됩니다.
+ *     tags:
+ *       - Sales
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: saleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: 판매 중단할 판매글 ID
+ *     responses:
+ *       200:
+ *         description: 판매 중단 성공
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 판매자 본인이 아님
+ *       404:
+ *         description: 판매글을 찾을 수 없음
+ *       409:
+ *         description: 판매 중단 불가 상태
+ *       500:
+ *         description: 서버 내부 오류
+ */
 router.patch('/:saleId/cancel', authenticate, cancelSaleController);
