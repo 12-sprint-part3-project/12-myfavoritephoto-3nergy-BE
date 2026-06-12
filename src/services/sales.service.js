@@ -10,6 +10,7 @@ import {
   updateSaleRepository,
   findOnSaleUserPhotocardsRepository,
   cancelSaleRepository,
+  updateUserPointBalanceRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -479,8 +480,49 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
     throw AppError(ERROR_CODES.INSUFFICIENT_POINT);
   }
 
-  return {
-    data: {
+  // 판매자 포인트 조회
+  const sellerPoint = await findUserPointRepository(sale.userUuid);
+
+  const data = await prisma.$transaction(async (tx) => {
+    // 구매자 포인트 차감
+    await updateUserPointBalanceRepository(
+      {
+        userUuid,
+        amount: -totalPrice,
+      },
+      tx,
+    );
+
+    // 판매자 포인트 적립
+    await updateUserPointBalanceRepository(
+      {
+        userUuid: sale.userUuid,
+        amount: totalPrice,
+      },
+      tx,
+    );
+
+    // 구매자 포인트 거래 내역 생성
+    await createPointTransactionRepository(
+      {
+        userUuid,
+        amount: -totalPrice,
+        type: 'BUY',
+      },
+      tx,
+    );
+
+    // 판매자 포인트 거래 내역 생성
+    await createPointTransactionRepository(
+      {
+        userUuid: sale.userUuid,
+        amount: totalPrice,
+        type: 'SELL',
+      },
+      tx,
+    );
+
+    return {
       sale: {
         id: sale.id,
         remainingQuantity: sale.remainingQuantity,
@@ -490,6 +532,10 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
         quantity,
         totalPrice,
       },
-    },
+    };
+  });
+
+  return {
+    data,
   };
 };

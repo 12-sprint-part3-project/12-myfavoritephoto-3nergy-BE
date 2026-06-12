@@ -263,11 +263,35 @@ export const findOnSaleUserPhotocardsRepository = async (
   });
 };
 
-// 구매자 포인트 조회
+// 포인트 조회
 export const findUserPointRepository = async (userUuid, tx = prisma) => {
   return tx.userPoint.findUnique({
     where: {
       userUuid,
     },
+  });
+};
+
+// 유저 포인트 증감
+export const updateUserPointBalanceRepository = async (
+  { userUuid, amount },
+  tx = prisma,
+) => {
+  return tx.userPoint.update({
+    where: {
+      userUuid,
+    },
+    data: {
+      balance: {
+        increment: amount,
+      },
+    },
+  });
+};
+
+// 포인트 거래 내역 생성
+export const createPointTransactionRepository = async (data, tx = prisma) => {
+  return tx.pointTransaction.create({
+    data,
   });
 };
