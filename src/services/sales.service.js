@@ -558,11 +558,31 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
       tx,
     );
 
+    // 판매글 잔여 수량 차감
+    let updatedSale = await decreaseSaleRemainingQuantityRepository(
+      {
+        saleId: sale.id,
+        quantity,
+      },
+      tx,
+    );
+
+    // 품절 처리
+    if (updatedSale.remainingQuantity === 0) {
+      updatedSale = await updateSaleStatusRepository(
+        {
+          saleId: sale.id,
+          status: 'SOLD_OUT',
+        },
+        tx,
+      );
+    }
+
     return {
       sale: {
-        id: sale.id,
-        remainingQuantity: sale.remainingQuantity,
-        status: sale.status,
+        id: updatedSale.id,
+        remainingQuantity: updatedSale.remainingQuantity,
+        status: updatedSale.status,
       },
       purchase: {
         quantity,

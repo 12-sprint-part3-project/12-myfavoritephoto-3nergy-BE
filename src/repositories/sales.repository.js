@@ -320,3 +320,45 @@ export const createSaleLogRepository = async (data, tx = prisma) => {
     data,
   });
 };
+
+// 판매글 잔여 수량 차감
+export const decreaseSaleRemainingQuantityRepository = async (
+  { saleId, quantity },
+  tx = prisma,
+) => {
+  return tx.sale.update({
+    where: {
+      id: saleId,
+    },
+    data: {
+      remainingQuantity: {
+        decrement: quantity,
+      },
+    },
+    select: {
+      id: true,
+      remainingQuantity: true,
+      status: true,
+    },
+  });
+};
+
+// 판매글 상태 변경
+export const updateSaleStatusRepository = async (
+  { saleId, status },
+  tx = prisma,
+) => {
+  return tx.sale.update({
+    where: {
+      id: saleId,
+    },
+    data: {
+      status,
+    },
+    select: {
+      id: true,
+      remainingQuantity: true,
+      status: true,
+    },
+  });
+};
