@@ -245,7 +245,7 @@ export const cancelSaleRepository = async (saleId, tx = prisma) => {
   });
 };
 
-// 수정할 ON_SALE 포토카드 조회
+// ON_SALE 포토카드 조회
 export const findOnSaleUserPhotocardsRepository = async (
   { ownerUuid, photocardId, quantity },
   tx = prisma,
@@ -292,6 +292,31 @@ export const updateUserPointBalanceRepository = async (
 // 포인트 거래 내역 생성
 export const createPointTransactionRepository = async (data, tx = prisma) => {
   return tx.pointTransaction.create({
+    data,
+  });
+};
+
+// 구매한 포토카드 소유권 이전
+export const transferUserPhotocardsRepository = async (
+  { userPhotocardIds, ownerUuid },
+  tx = prisma,
+) => {
+  return tx.userPhotocard.updateMany({
+    where: {
+      id: {
+        in: userPhotocardIds,
+      },
+    },
+    data: {
+      ownerUuid,
+      status: 'OWNED',
+    },
+  });
+};
+
+// 구매 이력 생성
+export const createSaleLogRepository = async (data, tx = prisma) => {
+  return tx.saleLog.create({
     data,
   });
 };

@@ -522,6 +522,42 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
       tx,
     );
 
+    // 구매할 ON_SALE 포토카드 조회
+    const onSaleCards = await findOnSaleUserPhotocardsRepository(
+      {
+        ownerUuid: sale.userUuid,
+        photocardId: sale.photocardId,
+        quantity,
+      },
+      tx,
+    );
+
+    if (onSaleCards.length < quantity) {
+      throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+    }
+
+    // 구매한 포토카드 소유권 이전
+    await transferUserPhotocardsRepository(
+      {
+        userPhotocardIds: onSaleCards.map((card) => card.id),
+        ownerUuid: userUuid,
+      },
+      tx,
+    );
+
+    // 구매 이력 생성
+    await createSaleLogRepository(
+      {
+        saleId: sale.id,
+        buyerUuid: userUuid,
+        sellerUuid: sale.userUuid,
+        photocardId: sale.photocardId,
+        quantity,
+        price: sale.price,
+      },
+      tx,
+    );
+
     return {
       sale: {
         id: sale.id,
