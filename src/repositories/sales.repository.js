@@ -201,6 +201,7 @@ export const findSaleForUpdateRepository = async (saleId) => {
       id: true,
       userUuid: true,
       photocardId: true,
+      price: true,
       status: true,
       quantity: true,
       remainingQuantity: true,
@@ -259,5 +260,14 @@ export const findOnSaleUserPhotocardsRepository = async (
       id: true,
     },
     take: quantity,
+  });
+};
+
+// 구매자 포인트 조회
+export const findUserPointRepository = async (userUuid, tx = prisma) => {
+  return tx.userPoint.findUnique({
+    where: {
+      userUuid,
+    },
   });
 };

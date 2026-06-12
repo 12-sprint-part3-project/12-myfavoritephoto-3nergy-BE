@@ -84,3 +84,21 @@ export const cancelSaleController = async (req, res, next) => {
     next(error);
   }
 };
+
+export const purchaseSaleController = async (req, res, next) => {
+  try {
+    const { saleId } = req.params;
+    const { userUuid } = req.user;
+    const { quantity } = req.body;
+
+    const result = await purchaseSaleService(
+      Number(saleId),
+      userUuid,
+      quantity,
+    );
+
+    return sendSuccess(res, 200, result.data);
+  } catch (error) {
+    next(error);
+  }
+};

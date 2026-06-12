@@ -443,3 +443,53 @@ export const cancelSaleService = async (saleId, userUuid) => {
     data,
   };
 };
+
+const getPurchasableSale = async (saleId, userUuid, quantity) => {
+  const sale = await findSaleForUpdateRepository(saleId);
+
+  if (!sale) {
+    throw AppError(ERROR_CODES.SALE_NOT_FOUND);
+  }
+
+  if (sale.userUuid === userUuid) {
+    throw AppError(ERROR_CODES.CANNOT_PURCHASE_OWN_SALE);
+  }
+
+  if (sale.status !== 'SALE') {
+    throw AppError(ERROR_CODES.INVALID_SALE_STATUS);
+  }
+
+  if (sale.remainingQuantity < quantity) {
+    throw AppError(ERROR_CODES.INSUFFICIENT_SALE_QUANTITY);
+  }
+
+  return sale;
+};
+
+export const purchaseSaleService = async (saleId, userUuid, quantity) => {
+  // 구매 가능 여부 검증
+  const sale = await getPurchasableSale(saleId, userUuid, quantity);
+
+  const totalPrice = sale.price * quantity;
+
+  // 구매자 포인트 조회 및 검증
+  const buyerPoint = await findUserPointRepository(userUuid);
+
+  if (!buyerPoint || buyerPoint.balance < totalPrice) {
+    throw AppError(ERROR_CODES.INSUFFICIENT_POINT);
+  }
+
+  return {
+    data: {
+      sale: {
+        id: sale.id,
+        remainingQuantity: sale.remainingQuantity,
+        status: sale.status,
+      },
+      purchase: {
+        quantity,
+        totalPrice,
+      },
+    },
+  };
+};

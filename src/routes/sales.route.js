@@ -6,6 +6,7 @@ import {
   getSaleDetailController,
   updateSaleController,
   cancelSaleController,
+  purchaseSaleController,
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validate, validateQuery } from '../middlewares/validate.middleware.js';
@@ -16,6 +17,7 @@ import {
 import {
   createSaleBodySchema,
   updateSaleBodySchema,
+  purchaseSaleBodySchema,
 } from '../validators/photocardBody.schema.js';
 
 const router = express.Router();
@@ -973,3 +975,10 @@ export default router;
  *                     message: 서버 내부 오류가 발생했습니다.
  */
 router.patch('/:saleId/cancel', authenticate, cancelSaleController);
+
+router.post(
+  '/:saleId/purchase',
+  authenticate,
+  validate(purchaseSaleBodySchema),
+  purchaseSaleController,
+);
