@@ -5,6 +5,7 @@ import {
   getSaleDetailService,
   updateSaleService,
   cancelSaleService,
+  purchaseSaleService,
 } from '../services/sales.service.js';
 import {
   sendSuccess,
