@@ -10,6 +10,12 @@ import {
   updateSaleRepository,
   findOnSaleUserPhotocardsRepository,
   cancelSaleRepository,
+  updateUserPointBalanceRepository,
+  findUserPointRepository,
+  decreaseSaleRemainingQuantityRepository,
+  createPointTransactionRepository,
+  transferUserPhotocardsRepository,
+  createSaleLogRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -438,6 +444,176 @@ export const cancelSaleService = async (saleId, userUuid) => {
 
     return canceledSale;
   });
+
+  return {
+    data,
+  };
+};
+
+const getPurchasableSale = async (saleId, userUuid, quantity) => {
+  const sale = await findSaleForUpdateRepository(saleId);
+
+  if (!sale) {
+    throw AppError(ERROR_CODES.SALE_NOT_FOUND);
+  }
+
+  if (sale.userUuid === userUuid) {
+    throw AppError(ERROR_CODES.CANNOT_PURCHASE_OWN_SALE);
+  }
+
+  if (sale.status !== 'SALE') {
+    throw AppError(ERROR_CODES.SALE_NOT_PURCHASABLE);
+  }
+
+  if (sale.remainingQuantity < quantity) {
+    throw AppError(ERROR_CODES.INSUFFICIENT_SALE_QUANTITY);
+  }
+
+  return sale;
+};
+
+export const purchaseSaleService = async (saleId, userUuid, quantity) => {
+  // 구매 가능 여부 검증
+  const sale = await getPurchasableSale(saleId, userUuid, quantity);
+
+  const totalPrice = sale.price * quantity;
+
+  // 구매자 포인트 조회 및 검증
+  const buyerPoint = await findUserPointRepository(userUuid);
+
+  if (!buyerPoint || buyerPoint.balance < totalPrice) {
+    throw AppError(ERROR_CODES.INSUFFICIENT_POINT);
+  }
+
+  const data = await prisma.$transaction(
+    async (tx) => {
+      // 판매글 잔여 수량 조건부 차감
+      const decreasedSale = await decreaseSaleRemainingQuantityRepository(
+        {
+          saleId: sale.id,
+          quantity,
+        },
+        tx,
+      );
+
+      if (decreasedSale.count === 0) {
+        throw AppError(ERROR_CODES.INSUFFICIENT_SALE_QUANTITY);
+      }
+
+      // 구매자 포인트 차감
+      await updateUserPointBalanceRepository(
+        {
+          userUuid,
+          amount: -totalPrice,
+        },
+        tx,
+      );
+
+      // 판매자 포인트 적립
+      await updateUserPointBalanceRepository(
+        {
+          userUuid: sale.userUuid,
+          amount: totalPrice,
+        },
+        tx,
+      );
+
+      // 구매자 포인트 거래 내역 생성
+      await createPointTransactionRepository(
+        {
+          userUuid,
+          amount: -totalPrice,
+          type: 'BUY',
+        },
+        tx,
+      );
+
+      // 판매자 포인트 거래 내역 생성
+      await createPointTransactionRepository(
+        {
+          userUuid: sale.userUuid,
+          amount: totalPrice,
+          type: 'SELL',
+        },
+        tx,
+      );
+
+      // 구매할 ON_SALE 포토카드 조회
+      const onSaleCards = await findOnSaleUserPhotocardsRepository(
+        {
+          ownerUuid: sale.userUuid,
+          photocardId: sale.photocardId,
+          quantity,
+        },
+        tx,
+      );
+
+      if (onSaleCards.length < quantity) {
+        throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+      }
+
+      // 구매한 포토카드 소유권 이전
+      await transferUserPhotocardsRepository(
+        {
+          userPhotocardIds: onSaleCards.map((card) => card.id),
+          ownerUuid: userUuid,
+        },
+        tx,
+      );
+
+      // 구매 이력 생성
+      await createSaleLogRepository(
+        {
+          saleId: sale.id,
+          buyerUuid: userUuid,
+          sellerUuid: sale.userUuid,
+          photocardId: sale.photocardId,
+          quantity,
+          price: sale.price,
+        },
+        tx,
+      );
+
+      let updatedSale = await findSaleForUpdateRepository(sale.id, tx);
+
+      // 품절 처리
+      if (updatedSale.remainingQuantity === 0) {
+        updatedSale = await updateSaleStatusRepository(
+          {
+            saleId: sale.id,
+            status: 'SOLD_OUT',
+          },
+          tx,
+        );
+      }
+
+      return {
+        sale: {
+          id: updatedSale.id,
+          remainingQuantity: updatedSale.remainingQuantity,
+          status: updatedSale.status,
+        },
+        purchase: {
+          quantity,
+          totalPrice,
+        },
+        photocard: {
+          id: sale.photocard.id,
+          name: sale.photocard.name,
+          grade: sale.photocard.grade,
+        },
+        buyer: {
+          uuid: userUuid,
+        },
+        seller: {
+          uuid: sale.userUuid,
+        },
+      };
+    },
+    {
+      timeout: 10000,
+    },
+  );
 
   return {
     data,

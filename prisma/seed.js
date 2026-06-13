@@ -18,23 +18,32 @@ const genres = [
   'etc',
 ];
 
-const saleStatuses = [
-  'SALE',
-  'SALE',
-  'SOLD_OUT',
-  'SALE',
-  'SALE',
-  'SOLD_OUT',
-  'SALE',
-  'SOLD_OUT',
-  'SALE',
-  'CANCELED',
-];
-
 const imageUrls = Array.from(
   { length: 100 },
   (_, index) => `https://picsum.photos/seed/photocard-${index + 1}/400/600`,
 );
+
+async function createUserPhotocards({
+  photocardId,
+  ownerUuid,
+  count,
+  status,
+  startSerialNumber = 1,
+}) {
+  for (let i = 0; i < count; i++) {
+    await prisma.userPhotocard.create({
+      data: {
+        photocardId,
+        ownerUuid,
+        serialNumber: startSerialNumber + i,
+        status,
+        acquiredAt: new Date(),
+      },
+    });
+  }
+
+  return startSerialNumber + count;
+}
 
 async function main() {
   await prisma.trade.deleteMany();
@@ -92,51 +101,21 @@ async function main() {
         },
       });
 
+      let nextSerialNumber = 1;
+
       const isSaleTarget = cardIndex <= 6;
 
-      const userPhotocardStatus = isSaleTarget
-        ? 'ON_SALE'
-        : cardIndex % 2 === 0
-          ? 'TRADE_PENDING'
-          : 'OWNED';
-
-      const userPhotocardQuantity =
-        userPhotocardStatus === 'OWNED'
-          ? cardIndex % 3 === 1
-            ? 3
-            : cardIndex % 3 === 2
-              ? 2
-              : 1
-          : 1;
-
-      for (
-        let serialNumber = 1;
-        serialNumber <= userPhotocardQuantity;
-        serialNumber++
-      ) {
-        const userPhotocard = await prisma.userPhotocard.create({
-          data: {
-            photocardId: photocard.id,
-            ownerUuid: user.uuid,
-            serialNumber,
-            status: userPhotocardStatus,
-            acquiredAt: new Date(),
-          },
-        });
-
-        if (userPhotocardStatus === 'TRADE_PENDING') {
-          tradePendingCards.push({
-            userPhotocard,
-            owner: user,
-          });
-        }
-      }
-
       if (isSaleTarget) {
+        const quantity = 5;
         const saleStatus =
           cardIndex === 3 || cardIndex === 6 ? 'SOLD_OUT' : 'SALE';
 
-        const quantity = 5;
+        const remainingQuantity =
+          saleStatus === 'SOLD_OUT'
+            ? 0
+            : Math.max(1, quantity - (globalIndex % quantity));
+
+        const soldQuantity = quantity - remainingQuantity;
 
         const sale = await prisma.sale.create({
           data: {
@@ -144,10 +123,7 @@ async function main() {
             photocardId: photocard.id,
             price: photocard.price,
             quantity,
-            remainingQuantity:
-              saleStatus === 'SOLD_OUT'
-                ? 0
-                : Math.max(1, quantity - (globalIndex % quantity)),
+            remainingQuantity,
             status: saleStatus,
             desiredGrade: grades[globalIndex % grades.length],
             desiredGenre: genres[globalIndex % genres.length],
@@ -155,12 +131,77 @@ async function main() {
           },
         });
 
+        // 판매 중인 수량만큼 판매자 ON_SALE 카드 생성
+        nextSerialNumber = await createUserPhotocards({
+          photocardId: photocard.id,
+          ownerUuid: user.uuid,
+          count: remainingQuantity,
+          status: 'ON_SALE',
+          startSerialNumber: nextSerialNumber,
+        });
+
+        // 이미 판매된 수량은 다른 유저 OWNED 카드로 생성
+        for (let i = 0; i < soldQuantity; i++) {
+          const buyer = users[(userIndex + i + 1) % users.length];
+
+          nextSerialNumber = await createUserPhotocards({
+            photocardId: photocard.id,
+            ownerUuid: buyer.uuid,
+            count: 1,
+            status: 'OWNED',
+            startSerialNumber: nextSerialNumber,
+          });
+
+          await prisma.saleLog.create({
+            data: {
+              saleId: sale.id,
+              buyerUuid: buyer.uuid,
+              sellerUuid: user.uuid,
+              photocardId: photocard.id,
+              quantity: 1,
+              price: photocard.price,
+            },
+          });
+        }
+
         if (saleStatus === 'SALE') {
           sales.push({
             sale,
             seller: user,
           });
         }
+
+        continue;
+      }
+
+      if (cardIndex % 2 === 0) {
+        const userPhotocard = await prisma.userPhotocard.create({
+          data: {
+            photocardId: photocard.id,
+            ownerUuid: user.uuid,
+            serialNumber: nextSerialNumber,
+            status: 'TRADE_PENDING',
+            acquiredAt: new Date(),
+          },
+        });
+
+        tradePendingCards.push({
+          userPhotocard,
+          owner: user,
+        });
+
+        nextSerialNumber++;
+      } else {
+        const ownedQuantity =
+          cardIndex % 3 === 1 ? 3 : cardIndex % 3 === 2 ? 2 : 1;
+
+        await createUserPhotocards({
+          photocardId: photocard.id,
+          ownerUuid: user.uuid,
+          count: ownedQuantity,
+          status: 'OWNED',
+          startSerialNumber: nextSerialNumber,
+        });
       }
     }
   }

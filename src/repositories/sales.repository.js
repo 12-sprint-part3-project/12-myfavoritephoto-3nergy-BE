@@ -192,8 +192,8 @@ export const findSaleDetailRepository = async (saleId) => {
 };
 
 // 수정할 판매글 조회
-export const findSaleForUpdateRepository = async (saleId) => {
-  return prisma.sale.findUnique({
+export const findSaleForUpdateRepository = async (saleId, tx = prisma) => {
+  return tx.sale.findUnique({
     where: {
       id: saleId,
     },
@@ -201,13 +201,20 @@ export const findSaleForUpdateRepository = async (saleId) => {
       id: true,
       userUuid: true,
       photocardId: true,
+      price: true,
       status: true,
       quantity: true,
       remainingQuantity: true,
+      photocard: {
+        select: {
+          id: true,
+          name: true,
+          grade: true,
+        },
+      },
     },
   });
 };
-
 export const updateSaleRepository = async (saleId, data, tx = prisma) => {
   return tx.sale.update({
     where: {
@@ -244,7 +251,7 @@ export const cancelSaleRepository = async (saleId, tx = prisma) => {
   });
 };
 
-// 수정할 ON_SALE 포토카드 조회
+// ON_SALE 포토카드 조회
 export const findOnSaleUserPhotocardsRepository = async (
   { ownerUuid, photocardId, quantity },
   tx = prisma,
@@ -259,5 +266,104 @@ export const findOnSaleUserPhotocardsRepository = async (
       id: true,
     },
     take: quantity,
+  });
+};
+
+// 포인트 조회
+export const findUserPointRepository = async (userUuid, tx = prisma) => {
+  return tx.userPoint.findUnique({
+    where: {
+      userUuid,
+    },
+  });
+};
+
+// 유저 포인트 증감
+export const updateUserPointBalanceRepository = async (
+  { userUuid, amount },
+  tx = prisma,
+) => {
+  return tx.userPoint.update({
+    where: {
+      userUuid,
+    },
+    data: {
+      balance: {
+        increment: amount,
+      },
+    },
+  });
+};
+
+// 포인트 거래 내역 생성
+export const createPointTransactionRepository = async (data, tx = prisma) => {
+  return tx.pointTransaction.create({
+    data,
+  });
+};
+
+// 구매한 포토카드 소유권 이전
+export const transferUserPhotocardsRepository = async (
+  { userPhotocardIds, ownerUuid },
+  tx = prisma,
+) => {
+  return tx.userPhotocard.updateMany({
+    where: {
+      id: {
+        in: userPhotocardIds,
+      },
+    },
+    data: {
+      ownerUuid,
+      status: 'OWNED',
+    },
+  });
+};
+
+// 구매 이력 생성
+export const createSaleLogRepository = async (data, tx = prisma) => {
+  return tx.saleLog.create({
+    data,
+  });
+};
+
+// 판매글 잔여 수량 차감
+export const decreaseSaleRemainingQuantityRepository = async (
+  { saleId, quantity },
+  tx = prisma,
+) => {
+  return tx.sale.updateMany({
+    where: {
+      id: saleId,
+      status: 'SALE',
+      remainingQuantity: {
+        gte: quantity,
+      },
+    },
+    data: {
+      remainingQuantity: {
+        decrement: quantity,
+      },
+    },
+  });
+};
+
+// 판매글 상태 변경
+export const updateSaleStatusRepository = async (
+  { saleId, status },
+  tx = prisma,
+) => {
+  return tx.sale.update({
+    where: {
+      id: saleId,
+    },
+    data: {
+      status,
+    },
+    select: {
+      id: true,
+      remainingQuantity: true,
+      status: true,
+    },
   });
 };
