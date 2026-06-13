@@ -480,10 +480,21 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
     throw AppError(ERROR_CODES.INSUFFICIENT_POINT);
   }
 
-  // 판매자 포인트 조회
-  const sellerPoint = await findUserPointRepository(sale.userUuid);
-
   const data = await prisma.$transaction(async (tx) => {
+    // 판매글 잔여 수량 조건부 차감
+    const decreasedSale = await decreaseSaleRemainingQuantityRepository(
+      {
+        saleId: sale.id,
+        quantity,
+      },
+      tx,
+    );
+
+    if (decreasedSale.count === 0) {
+      throw AppError(ERROR_CODES.INSUFFICIENT_SALE_QUANTITY);
+    }
+
+    let updatedSale = await findSaleForUpdateRepository(sale.id, tx);
     // 구매자 포인트 차감
     await updateUserPointBalanceRepository(
       {
@@ -558,15 +569,6 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
       tx,
     );
 
-    // 판매글 잔여 수량 차감
-    let updatedSale = await decreaseSaleRemainingQuantityRepository(
-      {
-        saleId: sale.id,
-        quantity,
-      },
-      tx,
-    );
-
     // 품절 처리
     if (updatedSale.remainingQuantity === 0) {
       updatedSale = await updateSaleStatusRepository(
@@ -587,6 +589,17 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
       purchase: {
         quantity,
         totalPrice,
+      },
+      photocard: {
+        id: sale.photocard.id,
+        name: sale.photocard.name,
+        grade: sale.photocard.grade,
+      },
+      buyer: {
+        uuid: userUuid,
+      },
+      seller: {
+        uuid: sale.userUuid,
       },
     };
   });

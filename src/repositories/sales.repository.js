@@ -192,8 +192,8 @@ export const findSaleDetailRepository = async (saleId) => {
 };
 
 // 수정할 판매글 조회
-export const findSaleForUpdateRepository = async (saleId) => {
-  return prisma.sale.findUnique({
+export const findSaleForUpdateRepository = async (saleId, tx = prisma) => {
+  return tx.sale.findUnique({
     where: {
       id: saleId,
     },
@@ -205,10 +205,16 @@ export const findSaleForUpdateRepository = async (saleId) => {
       status: true,
       quantity: true,
       remainingQuantity: true,
+      photocard: {
+        select: {
+          id: true,
+          name: true,
+          grade: true,
+        },
+      },
     },
   });
 };
-
 export const updateSaleRepository = async (saleId, data, tx = prisma) => {
   return tx.sale.update({
     where: {
@@ -326,19 +332,18 @@ export const decreaseSaleRemainingQuantityRepository = async (
   { saleId, quantity },
   tx = prisma,
 ) => {
-  return tx.sale.update({
+  return tx.sale.updateMany({
     where: {
       id: saleId,
+      status: 'SALE',
+      remainingQuantity: {
+        gte: quantity,
+      },
     },
     data: {
       remainingQuantity: {
         decrement: quantity,
       },
-    },
-    select: {
-      id: true,
-      remainingQuantity: true,
-      status: true,
     },
   });
 };
