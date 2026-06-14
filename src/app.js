@@ -5,6 +5,7 @@ import salesRouter from './routes/sales.route.js';
 import galleryRouter from './routes/photocards.route.js';
 import userRouter from './routes/user.route.js';
 import pointRouter from './routes/point.route.js';
+import tradesRouter from './routes/trades.route.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
@@ -27,6 +28,7 @@ app.use('/api/sales', salesRouter);
 app.use('/api/photocards', galleryRouter);
 app.use('/api/users', userRouter);
 app.use('/api/points', pointRouter);
+app.use('/api/trades', tradesRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // test route
