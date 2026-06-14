@@ -30,12 +30,7 @@ export const createTradeController = async (req, res, next) => {
       description: req.body.description,
     });
 
-    return res.status(201).json({
-      success: true,
-      message: '교환 제안이 완료되었습니다.',
-      data: { trade },
-      error: null,
-    });
+    return sendSuccess(res, 201, trade);
   } catch (error) {
     next(error);
   }

@@ -74,6 +74,7 @@ export const createTradeRepository = async (data, tx = prisma) => {
       id: true,
       saleId: true,
       offeredCardId: true,
+      description: true,
       status: true,
       createdAt: true,
     },

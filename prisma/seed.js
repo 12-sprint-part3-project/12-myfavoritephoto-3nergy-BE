@@ -18,40 +18,56 @@ const genres = [
   'etc',
 ];
 
-const imageUrls = Array.from(
-  { length: 100 },
-  (_, index) => `https://picsum.photos/seed/photocard-${index + 1}/400/600`,
-);
+const USER_COUNT = 10;
+const SALE_COUNT_PER_USER = 32;
+const OWNED_COUNT_PER_USER = 45;
+const TRADE_COUNT_PER_USER = 30;
 
-async function createUserPhotocards({
+const getGrade = (index) => grades[index % grades.length];
+const getGenre = (index) => genres[index % genres.length];
+
+const getImageUrl = (index) =>
+  `https://picsum.photos/seed/photocard-${index}/400/600`;
+
+async function createPhotocard({ creatorUuid, index, totalQuantity = 100 }) {
+  return prisma.photocard.create({
+    data: {
+      creatorUuid,
+      name: `테스트 포토카드 ${index}`,
+      imageUrl: getImageUrl(index),
+      description: `테스트 포토카드 ${index} 설명입니다.`,
+      grade: getGrade(index),
+      genre: getGenre(index),
+      totalQuantity,
+      price: 1000 + index * 10,
+    },
+  });
+}
+
+async function createUserPhotocard({
   photocardId,
   ownerUuid,
-  count,
+  serialNumber,
   status,
-  startSerialNumber = 1,
 }) {
-  for (let i = 0; i < count; i++) {
-    await prisma.userPhotocard.create({
-      data: {
-        photocardId,
-        ownerUuid,
-        serialNumber: startSerialNumber + i,
-        status,
-        acquiredAt: new Date(),
-      },
-    });
-  }
-
-  return startSerialNumber + count;
+  return prisma.userPhotocard.create({
+    data: {
+      photocardId,
+      ownerUuid,
+      serialNumber,
+      status,
+      acquiredAt: new Date(),
+    },
+  });
 }
 
 async function main() {
   await prisma.trade.deleteMany();
   await prisma.saleLog.deleteMany();
   await prisma.sale.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.userPhotocard.deleteMany();
   await prisma.photocard.deleteMany();
-  await prisma.notification.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.pointTransaction.deleteMany();
   await prisma.userPoint.deleteMany();
@@ -61,10 +77,10 @@ async function main() {
   const passwordHash = await bcrypt.hash('Password1234!', 10);
 
   const users = [];
-  const sales = [];
-  const tradePendingCards = [];
+  const representativeSalesByUserUuid = new Map();
+  const tradePendingCardsByUserUuid = new Map();
 
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= USER_COUNT; i++) {
     const user = await prisma.user.create({
       data: {
         email: `user${i}@test.com`,
@@ -72,162 +88,150 @@ async function main() {
         nickname: `유저${i}`,
         provider: 'LOCAL',
         point: {
-          create: { balance: 100000 },
+          create: {
+            balance: 100000,
+          },
         },
       },
     });
 
     users.push(user);
+    tradePendingCardsByUserUuid.set(user.uuid, []);
   }
 
-  for (let userIndex = 0; userIndex < users.length; userIndex++) {
-    const user = users[userIndex];
+  let globalPhotocardIndex = 1;
 
-    for (let cardIndex = 1; cardIndex <= 10; cardIndex++) {
-      const globalIndex = userIndex * 10 + cardIndex;
-      const grade = grades[(globalIndex - 1) % grades.length];
-      const genre = genres[(globalIndex - 1) % genres.length];
+  for (const [userIndex, user] of users.entries()) {
+    for (let saleIndex = 1; saleIndex <= SALE_COUNT_PER_USER; saleIndex++) {
+      const photocard = await createPhotocard({
+        creatorUuid: user.uuid,
+        index: globalPhotocardIndex,
+      });
 
-      const photocard = await prisma.photocard.create({
+      const quantity = 5;
+      const isSoldOut = saleIndex % 8 === 0;
+      const remainingQuantity = isSoldOut ? 0 : 3;
+      const soldQuantity = quantity - remainingQuantity;
+
+      const sale = await prisma.sale.create({
         data: {
-          creatorUuid: user.uuid,
-          name: `테스트 포토카드 ${globalIndex}`,
-          imageUrl: imageUrls[globalIndex - 1],
-          description: `테스트 포토카드 ${globalIndex} 설명입니다.`,
-          grade,
-          genre,
-          totalQuantity: 5,
-          price: 1000 + globalIndex * 100,
+          userUuid: user.uuid,
+          photocardId: photocard.id,
+          price: photocard.price,
+          quantity,
+          remainingQuantity,
+          status: isSoldOut ? 'SOLD_OUT' : 'SALE',
+          desiredGrade: getGrade(globalPhotocardIndex + 1),
+          desiredGenre: getGenre(globalPhotocardIndex + 1),
+          desiredDescription: '교환 희망 조건입니다.',
         },
       });
 
-      let nextSerialNumber = 1;
+      if (saleIndex === 1) {
+        representativeSalesByUserUuid.set(user.uuid, sale);
+      }
 
-      const isSaleTarget = cardIndex <= 6;
+      let serialNumber = 1;
 
-      if (isSaleTarget) {
-        const quantity = 5;
-        const saleStatus =
-          cardIndex === 3 || cardIndex === 6 ? 'SOLD_OUT' : 'SALE';
-
-        const remainingQuantity =
-          saleStatus === 'SOLD_OUT'
-            ? 0
-            : Math.max(1, quantity - (globalIndex % quantity));
-
-        const soldQuantity = quantity - remainingQuantity;
-
-        const sale = await prisma.sale.create({
-          data: {
-            userUuid: user.uuid,
-            photocardId: photocard.id,
-            price: photocard.price,
-            quantity,
-            remainingQuantity,
-            status: saleStatus,
-            desiredGrade: grades[globalIndex % grades.length],
-            desiredGenre: genres[globalIndex % genres.length],
-            desiredDescription: '교환 희망 조건입니다.',
-          },
-        });
-
-        // 판매 중인 수량만큼 판매자 ON_SALE 카드 생성
-        nextSerialNumber = await createUserPhotocards({
+      for (let i = 0; i < remainingQuantity; i++) {
+        await createUserPhotocard({
           photocardId: photocard.id,
           ownerUuid: user.uuid,
-          count: remainingQuantity,
+          serialNumber,
           status: 'ON_SALE',
-          startSerialNumber: nextSerialNumber,
         });
 
-        // 이미 판매된 수량은 다른 유저 OWNED 카드로 생성
-        for (let i = 0; i < soldQuantity; i++) {
-          const buyer = users[(userIndex + i + 1) % users.length];
-
-          nextSerialNumber = await createUserPhotocards({
-            photocardId: photocard.id,
-            ownerUuid: buyer.uuid,
-            count: 1,
-            status: 'OWNED',
-            startSerialNumber: nextSerialNumber,
-          });
-
-          await prisma.saleLog.create({
-            data: {
-              saleId: sale.id,
-              buyerUuid: buyer.uuid,
-              sellerUuid: user.uuid,
-              photocardId: photocard.id,
-              quantity: 1,
-              price: photocard.price,
-            },
-          });
-        }
-
-        if (saleStatus === 'SALE') {
-          sales.push({
-            sale,
-            seller: user,
-          });
-        }
-
-        continue;
+        serialNumber++;
       }
 
-      if (cardIndex % 2 === 0) {
-        const userPhotocard = await prisma.userPhotocard.create({
+      for (let i = 0; i < soldQuantity; i++) {
+        const buyer = users[(userIndex + i + 1) % users.length];
+
+        await createUserPhotocard({
+          photocardId: photocard.id,
+          ownerUuid: buyer.uuid,
+          serialNumber,
+          status: 'OWNED',
+        });
+
+        await prisma.saleLog.create({
           data: {
+            saleId: sale.id,
+            buyerUuid: buyer.uuid,
+            sellerUuid: user.uuid,
             photocardId: photocard.id,
-            ownerUuid: user.uuid,
-            serialNumber: nextSerialNumber,
-            status: 'TRADE_PENDING',
-            acquiredAt: new Date(),
+            quantity: 1,
+            price: photocard.price,
           },
         });
 
-        tradePendingCards.push({
-          userPhotocard,
-          owner: user,
-        });
-
-        nextSerialNumber++;
-      } else {
-        const ownedQuantity =
-          cardIndex % 3 === 1 ? 3 : cardIndex % 3 === 2 ? 2 : 1;
-
-        await createUserPhotocards({
-          photocardId: photocard.id,
-          ownerUuid: user.uuid,
-          count: ownedQuantity,
-          status: 'OWNED',
-          startSerialNumber: nextSerialNumber,
-        });
+        serialNumber++;
       }
+
+      globalPhotocardIndex++;
+    }
+
+    for (let ownedIndex = 1; ownedIndex <= OWNED_COUNT_PER_USER; ownedIndex++) {
+      const photocard = await createPhotocard({
+        creatorUuid: user.uuid,
+        index: globalPhotocardIndex,
+        totalQuantity: 1,
+      });
+
+      await createUserPhotocard({
+        photocardId: photocard.id,
+        ownerUuid: user.uuid,
+        serialNumber: 1,
+        status: 'OWNED',
+      });
+
+      globalPhotocardIndex++;
+    }
+
+    for (let tradeIndex = 1; tradeIndex <= TRADE_COUNT_PER_USER; tradeIndex++) {
+      const photocard = await createPhotocard({
+        creatorUuid: user.uuid,
+        index: globalPhotocardIndex,
+        totalQuantity: 1,
+      });
+
+      const userPhotocard = await createUserPhotocard({
+        photocardId: photocard.id,
+        ownerUuid: user.uuid,
+        serialNumber: 1,
+        status: 'TRADE_PENDING',
+      });
+
+      tradePendingCardsByUserUuid.get(user.uuid).push(userPhotocard);
+
+      globalPhotocardIndex++;
     }
   }
 
-  for (let i = 0; i < tradePendingCards.length; i++) {
-    const proposer = tradePendingCards[i].owner;
-    const offeredCard = tradePendingCards[i].userPhotocard;
+  for (const [userIndex, proposer] of users.entries()) {
+    const receiver = users[(userIndex + 1) % users.length];
+    const targetSale = representativeSalesByUserUuid.get(receiver.uuid);
+    const offeredCards = tradePendingCardsByUserUuid.get(proposer.uuid);
 
-    const targetSale = sales.find(
-      ({ seller }) => seller.uuid !== proposer.uuid,
-    );
-
-    if (!targetSale) continue;
-
-    await prisma.trade.create({
-      data: {
-        proposerUuid: proposer.uuid,
-        receiverUuid: targetSale.seller.uuid,
-        saleId: targetSale.sale.id,
-        offeredCardId: offeredCard.id,
-        status: 'PENDING',
-      },
-    });
+    for (const [tradeIndex, offeredCard] of offeredCards.entries()) {
+      await prisma.trade.create({
+        data: {
+          proposerUuid: proposer.uuid,
+          receiverUuid: receiver.uuid,
+          saleId: targetSale.id,
+          offeredCardId: offeredCard.id,
+          description: `교환 제안 테스트 내용 ${tradeIndex + 1}`,
+          status: 'PENDING',
+        },
+      });
+    }
   }
 
   console.log('Seed 완료');
+  console.log(`유저 ${USER_COUNT}명`);
+  console.log(`유저별 판매글 ${SALE_COUNT_PER_USER}개`);
+  console.log(`유저별 OWNED 카드 ${OWNED_COUNT_PER_USER}개 이상`);
+  console.log(`유저별 받은 PENDING 교환 제안 ${TRADE_COUNT_PER_USER}개`);
 }
 
 main()
