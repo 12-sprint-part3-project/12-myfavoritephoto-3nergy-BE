@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
 
+// 받은 교환 제안 조회
 export const findReceivedTradesBySaleRepository = async ({
   saleId,
   receiverUuid,
@@ -35,5 +36,57 @@ export const findReceivedTradesBySaleRepository = async ({
         },
       },
     },
+  });
+};
+
+// 판매글 ID로 판매글을 조회
+export const findSaleByIdRepository = async (saleId, tx = prisma) => {
+  return tx.sale.findUnique({
+    where: { id: saleId },
+    select: {
+      id: true,
+      userUuid: true,
+      status: true,
+    },
+  });
+};
+
+// UserPhotocard ID로 제안 카드를 조회
+export const findUserPhotocardByIdRepository = async (
+  userPhotocardId,
+  tx = prisma,
+) => {
+  return tx.userPhotocard.findUnique({
+    where: { id: userPhotocardId },
+    select: {
+      id: true,
+      ownerUuid: true,
+      status: true,
+    },
+  });
+};
+
+// 교환 제안 생성
+export const createTradeRepository = async (data, tx = prisma) => {
+  return tx.trade.create({
+    data,
+    select: {
+      id: true,
+      saleId: true,
+      offeredCardId: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+};
+
+// 제안 카드 상태 변경
+export const updateUserPhotocardStatusRepository = async (
+  { id, status },
+  tx = prisma,
+) => {
+  return tx.userPhotocard.update({
+    where: { id },
+    data: { status },
   });
 };
