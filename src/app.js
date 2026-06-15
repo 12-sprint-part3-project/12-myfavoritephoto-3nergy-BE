@@ -6,6 +6,7 @@ import galleryRouter from './routes/photocards.route.js';
 import userRouter from './routes/user.route.js';
 import pointRouter from './routes/point.route.js';
 import tradesRouter from './routes/trades.route.js';
+import notificationRouter from './routes/notification.route.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
@@ -29,11 +30,20 @@ app.use('/api/photocards', galleryRouter);
 app.use('/api/users', userRouter);
 app.use('/api/points', pointRouter);
 app.use('/api/trades', tradesRouter);
+app.use('/api/notifications', notificationRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // test route
 app.get('/', (req, res) => {
   res.send('API Server Running 🚀');
+});
+
+// 404 처리
+app.use((req, res, next) => {
+  const error = new Error('요청한 API 경로를 찾을 수 없습니다.');
+  error.statusCode = 404;
+  error.code = 'NOT_FOUND';
+  next(error);
 });
 
 // cron jobs

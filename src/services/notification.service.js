@@ -1,11 +1,11 @@
-import { ERROR_CODES } from '../constants/errorCodes';
-import { AppError } from '../errors/AppError';
+import { ERROR_CODES } from '../constants/errorCodes.js';
+import { AppError } from '../errors/AppError.js';
 import {
   createNotification,
   findNotificationByIdAndUserUuid,
   findNotificationsByUserUuid,
   markNotificationAsRead,
-} from '../repositories/notification.repository';
+} from '../repositories/notification.repository.js';
 
 // 알림생성
 export const createNotificationService = async ({

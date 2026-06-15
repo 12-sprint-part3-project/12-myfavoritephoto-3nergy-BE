@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma';
+import prisma from '../lib/prisma.js';
 
 // 알림생성
 export const createNotification = async ({
