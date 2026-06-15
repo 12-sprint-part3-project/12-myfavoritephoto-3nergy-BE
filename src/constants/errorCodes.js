@@ -249,4 +249,14 @@ export const ERROR_CODES = {
     code: 'GOOGLE_AUTH_FAILED',
     message: 'Google 인증에 실패했습니다.',
   },
+
+  // =========================
+  // Notification
+  // =========================
+
+  NOTIFICATION_NOT_FOUND: {
+    code: 'NOTIFICATION_NOT_FOUND',
+    message: '알림을 찾을 수 없습니다.',
+    statusCode: 404,
+  },
 };
