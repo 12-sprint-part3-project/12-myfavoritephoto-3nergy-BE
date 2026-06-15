@@ -1,6 +1,8 @@
 import {
   getReceivedTradesBySaleService,
   createTradeService,
+  getMyTradesBySaleService,
+  cancelTradeService,
 } from '../services/trades.service.js';
 import { sendSuccess } from '../helpers/response.helper.js';
 

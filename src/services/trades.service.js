@@ -7,6 +7,8 @@ import {
   findUserPhotocardByIdRepository,
   updateUserPhotocardStatusRepository,
   findReceivedTradesBySaleRepository,
+  findMyTradesBySaleRepository,
+  updateTradeStatusRepository,
 } from '../repositories/trades.repository.js';
 
 // 특정 판매글의 교환 제안 목록을 조회
