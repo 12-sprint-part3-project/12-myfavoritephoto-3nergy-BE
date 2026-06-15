@@ -6,6 +6,11 @@ import {
   findCardsListRepository,
 } from '../repositories/photocards.repository.js';
 import { getStartOfMonthKST } from '../helpers/date.helper.js';
+import {
+  buildFilterCounts,
+  GENRE_VALUES,
+  GRADE_VALUES,
+} from '../helpers/buildFilterCounts.helper.js';
 
 const MONTHLY_PHOTOCARD_CREATION_LIMIT = 3; // 월 3장 제한
 
@@ -49,23 +54,21 @@ export const getCardsListService = async (query) => {
 
   const photocards = Array.from(cardMap.values());
 
-  const gradeCounts = {
-    common: 0,
-    rare: 0,
-    super_rare: 0,
-    legendary: 0,
-  };
-
-  photocards.forEach((card) => {
-    gradeCounts[card.grade] += card.quantity;
+  const gradeCounts = buildFilterCounts({
+    items: photocards,
+    field: 'grade',
+    values: GRADE_VALUES,
+    responseKey: 'grade',
+    countField: 'quantity',
   });
 
-  const formattedGradeCounts = Object.entries(gradeCounts).map(
-    ([grade, count]) => ({
-      grade,
-      count,
-    }),
-  );
+  const genreCounts = buildFilterCounts({
+    items: photocards,
+    field: 'genre',
+    values: GENRE_VALUES,
+    responseKey: 'genre',
+    countField: 'quantity',
+  });
 
   const sortMap = {
     latest: (a, b) => new Date(b.acquiredAt) - new Date(a.acquiredAt),
@@ -84,7 +87,8 @@ export const getCardsListService = async (query) => {
 
   return {
     data: {
-      gradeCounts: formattedGradeCounts,
+      gradeCounts,
+      genreCounts,
       photocards: pagedPhotocards,
     },
     meta: {
