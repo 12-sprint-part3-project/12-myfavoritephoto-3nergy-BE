@@ -2,16 +2,11 @@ import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js'
 import prisma from '../lib/prisma.js';
 
 export const findSalesListRepository = async ({
-  page,
-  pageSize,
   grade,
   genre,
   keyword,
   status,
-  sort,
 }) => {
-  const skip = (page - 1) * pageSize;
-
   const where = {
     status: status || {
       in: ['SALE', 'SOLD_OUT'],
@@ -20,49 +15,32 @@ export const findSalesListRepository = async ({
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
-  const orderByMap = {
-    latest: { createdAt: 'desc' },
-    oldest: { createdAt: 'asc' },
-    price_asc: { price: 'asc' },
-    price_desc: { price: 'desc' },
-  };
+  const salesList = await prisma.sale.findMany({
+    where,
 
-  const orderBy = orderByMap[sort] || {
-    createdAt: 'desc',
-  };
-
-  const [salesList, totalCount] = await Promise.all([
-    prisma.sale.findMany({
-      where,
-      skip,
-      take: pageSize,
-      orderBy,
-      include: {
-        photocard: {
-          select: {
-            id: true,
-            name: true,
-            imageUrl: true,
-            grade: true,
-            genre: true,
-            description: true,
-          },
-        },
-
-        seller: {
-          select: {
-            uuid: true,
-            nickname: true,
-          },
+    include: {
+      photocard: {
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          grade: true,
+          genre: true,
+          description: true,
         },
       },
-    }),
-    prisma.sale.count({ where }),
-  ]);
+
+      seller: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
+    },
+  });
 
   return {
     salesList,
-    totalCount,
   };
 };
 

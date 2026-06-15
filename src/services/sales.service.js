@@ -20,6 +20,13 @@ import {
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
 import prisma from '../lib/prisma.js';
+import {
+  buildFilterCounts,
+  GENRE_VALUES,
+  GRADE_VALUES,
+  SALE_METHOD_VALUES,
+  SALE_STATUS_VALUES,
+} from '../helpers/buildFilterCounts.helper.js';
 
 export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
@@ -153,6 +160,8 @@ export const getMySalesService = async (query) => {
     remainingQuantity: sale.remainingQuantity,
     nickname: sale.seller.nickname,
     displayStatus: sale.status === 'SOLD_OUT' ? 'SOLD_OUT' : 'SALE',
+    countStatus: sale.status === 'SOLD_OUT' ? 'SOLD_OUT' : 'SALE',
+    saleMethod: 'SALE',
     createdAt: sale.createdAt,
   }));
 
@@ -166,6 +175,8 @@ export const getMySalesService = async (query) => {
     remainingQuantity: 1,
     nickname: trade.offeredCard.owner.nickname,
     displayStatus: 'TRADE_PENDING',
+    countStatus: 'SALE',
+    saleMethod: 'TRADE',
     createdAt: trade.createdAt,
   }));
 
@@ -207,23 +218,33 @@ export const getMySalesService = async (query) => {
   const sortFunction = sortMap[query.sort] || sortMap.latest;
   const sortedMySales = [...filteredMySales].sort(sortFunction);
 
-  const gradeCounts = {
-    common: 0,
-    rare: 0,
-    super_rare: 0,
-    legendary: 0,
-  };
-
-  sortedMySales.forEach((card) => {
-    gradeCounts[card.grade] += card.remainingQuantity;
+  const gradeCounts = buildFilterCounts({
+    items: filteredMySales,
+    field: 'grade',
+    values: GRADE_VALUES,
+    responseKey: 'grade',
   });
 
-  const formattedGradeCounts = Object.entries(gradeCounts).map(
-    ([grade, count]) => ({
-      grade,
-      count,
-    }),
-  );
+  const genreCounts = buildFilterCounts({
+    items: filteredMySales,
+    field: 'genre',
+    values: GENRE_VALUES,
+    responseKey: 'genre',
+  });
+
+  const saleStatusCounts = buildFilterCounts({
+    items: filteredMySales,
+    field: 'countStatus',
+    values: SALE_STATUS_VALUES,
+    responseKey: 'status',
+  });
+
+  const saleMethodCounts = buildFilterCounts({
+    items: filteredMySales,
+    field: 'saleMethod',
+    values: SALE_METHOD_VALUES,
+    responseKey: 'saleMethod',
+  });
 
   const totalCount = sortedMySales.length;
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -232,7 +253,10 @@ export const getMySalesService = async (query) => {
 
   return {
     data: {
-      gradeCounts: formattedGradeCounts,
+      gradeCounts,
+      genreCounts,
+      saleStatusCounts,
+      saleMethodCounts,
       mySales: pagedMySales,
     },
     meta: {

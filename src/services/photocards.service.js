@@ -6,6 +6,11 @@ import {
   findCardsListRepository,
 } from '../repositories/photocards.repository.js';
 import { getStartOfMonthKST } from '../helpers/date.helper.js';
+import {
+  buildFilterCounts,
+  GENRE_VALUES,
+  GRADE_VALUES,
+} from '../helpers/buildFilterCounts.helper.js';
 
 const MONTHLY_PHOTOCARD_CREATION_LIMIT = 3; // 월 3장 제한
 
@@ -13,14 +18,11 @@ export const getCardsListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const { cardsList, totalCount } = await findCardsListRepository({
+  const { cardsList } = await findCardsListRepository({
     userUuid: query.userUuid,
-    page,
-    pageSize,
     grade: query.grade,
     genre: query.genre,
     keyword: query.keyword,
-    sort: query.sort,
   });
 
   const cardMap = new Map();
@@ -40,6 +42,7 @@ export const getCardsListService = async (query) => {
         description: photocard.description,
         quantity: 0,
         ownerNickname: card.owner.nickname,
+        acquiredAt: card.acquiredAt,
       });
     }
 
@@ -51,30 +54,42 @@ export const getCardsListService = async (query) => {
 
   const photocards = Array.from(cardMap.values());
 
-  const gradeCounts = {
-    common: 0,
-    rare: 0,
-    super_rare: 0,
-    legendary: 0,
-  };
-
-  photocards.forEach((card) => {
-    gradeCounts[card.grade] += card.quantity;
+  const gradeCounts = buildFilterCounts({
+    items: photocards,
+    field: 'grade',
+    values: GRADE_VALUES,
+    responseKey: 'grade',
+    countField: 'quantity',
   });
 
-  const formattedGradeCounts = Object.entries(gradeCounts).map(
-    ([grade, count]) => ({
-      grade,
-      count,
-    }),
-  );
+  const genreCounts = buildFilterCounts({
+    items: photocards,
+    field: 'genre',
+    values: GENRE_VALUES,
+    responseKey: 'genre',
+    countField: 'quantity',
+  });
 
+  const sortMap = {
+    latest: (a, b) => new Date(b.acquiredAt) - new Date(a.acquiredAt),
+    oldest: (a, b) => new Date(a.acquiredAt) - new Date(b.acquiredAt),
+    price_asc: (a, b) => a.price - b.price,
+    price_desc: (a, b) => b.price - a.price,
+  };
+
+  const sortFunction = sortMap[query.sort] || sortMap.latest;
+  const sortedPhotocards = [...photocards].sort(sortFunction);
+
+  const totalCount = sortedPhotocards.length;
   const totalPages = Math.ceil(totalCount / pageSize);
+  const start = (page - 1) * pageSize;
+  const pagedPhotocards = sortedPhotocards.slice(start, start + pageSize);
 
   return {
     data: {
-      gradeCounts: formattedGradeCounts,
-      photocards,
+      gradeCounts,
+      genreCounts,
+      photocards: pagedPhotocards,
     },
     meta: {
       page,
