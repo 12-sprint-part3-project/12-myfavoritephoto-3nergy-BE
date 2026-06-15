@@ -96,3 +96,43 @@ export const createTradeService = async ({
     return trade;
   });
 };
+
+// 교환 제안 취소
+export const cancelTradeService = async ({ tradeId, userUuid }) => {
+  return prisma.$transaction(async (tx) => {
+    const trade = await findTradeByIdRepository(tradeId, tx);
+
+    if (!trade) {
+      throw AppError(ERROR_CODES.TRADE_NOT_FOUND);
+    }
+
+    if (trade.proposerUuid !== userUuid) {
+      throw AppError(ERROR_CODES.NOT_TRADE_PROPOSER);
+    }
+
+    if (trade.status !== 'PENDING') {
+      throw AppError(ERROR_CODES.INVALID_TRADE_STATUS);
+    }
+
+    await updateUserPhotocardStatusRepository(
+      {
+        id: trade.offeredCardId,
+        status: 'OWNED',
+      },
+      tx,
+    );
+
+    const canceledTrade = await updateTradeStatusRepository(
+      {
+        tradeId,
+        status: 'CANCELED',
+      },
+      tx,
+    );
+
+    return {
+      id: canceledTrade.id,
+      status: canceledTrade.status,
+    };
+  });
+};

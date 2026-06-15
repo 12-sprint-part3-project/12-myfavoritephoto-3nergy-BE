@@ -3,6 +3,7 @@ import { authenticate } from '../middlewares/auth.middleware.js';
 import {
   getReceivedTradesBySaleController,
   createTradeController,
+  cancelTradeController,
 } from '../controllers/trades.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { createTradeBodySchema } from '../validators/trades.schema.js';
@@ -310,5 +311,7 @@ router.post(
   validate(createTradeBodySchema),
   createTradeController,
 );
+
+router.patch('/:tradeId/cancel', authenticate, cancelTradeController);
 
 export default router;

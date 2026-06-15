@@ -35,3 +35,20 @@ export const createTradeController = async (req, res, next) => {
     next(error);
   }
 };
+
+// 교환 제안 취소
+export const cancelTradeController = async (req, res, next) => {
+  try {
+    const { tradeId } = req.params;
+    const { userUuid } = req.user;
+
+    const result = await cancelTradeService({
+      tradeId: Number(tradeId),
+      userUuid,
+    });
+
+    return sendSuccess(res, 200, result);
+  } catch (error) {
+    next(error);
+  }
+};

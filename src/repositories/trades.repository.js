@@ -91,3 +91,27 @@ export const updateUserPhotocardStatusRepository = async (
     data: { status },
   });
 };
+
+// 교환 ID 조회
+export const findTradeByIdRepository = async (tradeId, tx = prisma) => {
+  return tx.trade.findUnique({
+    where: {
+      id: tradeId,
+    },
+  });
+};
+
+// 교환 제안 상태 변경
+export const updateTradeStatusRepository = async (
+  { tradeId, status },
+  tx = prisma,
+) => {
+  return tx.trade.update({
+    where: {
+      id: tradeId,
+    },
+    data: {
+      status,
+    },
+  });
+};
