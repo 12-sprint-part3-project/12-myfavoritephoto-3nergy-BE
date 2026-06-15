@@ -469,6 +469,37 @@ router.post(
  *                     count: 3
  *                   - grade: legendary
  *                     count: 5
+ *                 genreCounts:
+ *                   - genre: album
+ *                     count: 12
+ *                   - genre: special
+ *                     count: 3
+ *                   - genre: landscape
+ *                     count: 8
+ *                   - genre: season_greeting
+ *                     count: 2
+ *                   - genre: fan_meeting
+ *                     count: 1
+ *                   - genre: concert
+ *                     count: 4
+ *                   - genre: md
+ *                     count: 7
+ *                   - genre: collage
+ *                     count: 2
+ *                   - genre: branding
+ *                     count: 1
+ *                   - genre: etc
+ *                     count: 0
+ *                 saleStatusCounts:
+ *                   - status: SALE
+ *                     count: 59
+ *                   - status: SOLD_OUT
+ *                     count: 4
+ *                 saleMethodCounts:
+ *                   - saleMethod: SALE
+ *                     count: 32
+ *                   - saleMethod: TRADE
+ *                     count: 31
  *                 mySales:
  *                   - id: 1
  *                     name: 우리집 앞마당
