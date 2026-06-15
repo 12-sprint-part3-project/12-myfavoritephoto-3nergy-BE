@@ -3,15 +3,10 @@ import prisma from '../lib/prisma.js';
 
 export const findCardsListRepository = async ({
   userUuid,
-  page,
-  pageSize,
   grade,
   genre,
   keyword,
-  sort,
 }) => {
-  const skip = (page - 1) * pageSize;
-
   const where = {
     ownerUuid: userUuid,
     status: 'OWNED',
@@ -19,60 +14,33 @@ export const findCardsListRepository = async ({
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
-  const orderByMap = {
-    latest: {
-      acquiredAt: 'desc',
-    },
-    oldest: {
-      acquiredAt: 'asc',
-    },
-    price_asc: {
-      photocard: {
-        price: 'asc',
-      },
-    },
-    price_desc: {
-      photocard: {
-        price: 'desc',
-      },
-    },
-  };
+  const cardsList = await prisma.userPhotocard.findMany({
+    where,
 
-  const orderBy = orderByMap[sort] || {
-    createdAt: 'desc',
-  };
-
-  const [cardsList, totalCount] = await Promise.all([
-    prisma.userPhotocard.findMany({
-      where,
-      skip,
-      take: pageSize,
-      orderBy,
-      include: {
-        photocard: {
-          select: {
-            id: true,
-            name: true,
-            imageUrl: true,
-            grade: true,
-            genre: true,
-            price: true,
-            description: true,
-          },
-        },
-        owner: {
-          select: {
-            nickname: true,
-          },
+    include: {
+      photocard: {
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          grade: true,
+          genre: true,
+          price: true,
+          description: true,
         },
       },
-    }),
-    prisma.userPhotocard.count({ where }),
-  ]);
+
+      owner: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
+    },
+  });
 
   return {
     cardsList,
-    totalCount,
   };
 };
 
