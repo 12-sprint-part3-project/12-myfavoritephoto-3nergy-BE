@@ -16,6 +16,7 @@ import {
   createPointTransactionRepository,
   transferUserPhotocardsRepository,
   createSaleLogRepository,
+  updateSaleStatusRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -27,6 +28,9 @@ import {
   SALE_METHOD_VALUES,
   SALE_STATUS_VALUES,
 } from '../helpers/buildFilterCounts.helper.js';
+import { createNotificationService } from './notification.service.js';
+import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';
+import { findUserNicknameByUuid } from '../repositories/user.repository.js';
 
 export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
@@ -511,6 +515,13 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
 
   const data = await prisma.$transaction(
     async (tx) => {
+      // 구매자 기본 정보 조회
+      const buyer = await findUserNicknameByUuid(userUuid, tx);
+
+      if (!buyer) {
+        throw AppError(ERROR_CODES.USER_NOT_FOUND);
+      }
+
       // 판매글 잔여 수량 조건부 차감
       const decreasedSale = await decreaseSaleRemainingQuantityRepository(
         {
@@ -598,6 +609,50 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
         tx,
       );
 
+      // 구매자 알림 생성
+      await createNotificationService(
+        {
+          userUuid,
+          ...NOTIFICATION_PRESET.PURCHASE_COMPLETED,
+          targetId: null,
+          metadata: {
+            actor: {
+              uuid: sale.seller.uuid,
+              nickname: sale.seller.nickname,
+            },
+            photocard: {
+              id: sale.photocard.id,
+              name: sale.photocard.name,
+              grade: sale.photocard.grade,
+            },
+            quantity,
+          },
+        },
+        tx,
+      );
+
+      // 판매자 알림 생성
+      await createNotificationService(
+        {
+          userUuid: sale.userUuid,
+          ...NOTIFICATION_PRESET.SALE_COMPLETED,
+          targetId: null,
+          metadata: {
+            actor: {
+              uuid: buyer.uuid,
+              nickname: buyer.nickname,
+            },
+            photocard: {
+              id: sale.photocard.id,
+              name: sale.photocard.name,
+              grade: sale.photocard.grade,
+            },
+            quantity,
+          },
+        },
+        tx,
+      );
+
       let updatedSale = await findSaleForUpdateRepository(sale.id, tx);
 
       // 품절 처리
@@ -606,6 +661,23 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
           {
             saleId: sale.id,
             status: 'SOLD_OUT',
+          },
+          tx,
+        );
+
+        // 판매자 품절 알림 생성
+        await createNotificationService(
+          {
+            userUuid: sale.userUuid,
+            ...NOTIFICATION_PRESET.SOLD_OUT,
+            targetId: null,
+            metadata: {
+              photocard: {
+                id: sale.photocard.id,
+                name: sale.photocard.name,
+                grade: sale.photocard.grade,
+              },
+            },
           },
           tx,
         );

@@ -1,18 +1,17 @@
 import prisma from '../lib/prisma.js';
 
 // 알림생성
-export const createNotification = async ({
-  userUuid,
-  type,
-  targetType,
-  targetId = null,
-}) => {
-  return prisma.notification.create({
+export const createNotification = async (
+  { userUuid, type, targetType, targetId = null, metadata = null },
+  tx = prisma,
+) => {
+  return tx.notification.create({
     data: {
       userUuid,
       type,
       targetType,
       targetId,
+      metadata,
     },
   });
 };

@@ -12,7 +12,7 @@ export const getMyNotifications = async (req, res, next) => {
 
     const notifications = await getMyNotificationsService(userUuid);
 
-    return sendSuccess(res, 200, notifications);
+    return sendSuccess(res, 200, { notifications });
   } catch (error) {
     next(error);
   }

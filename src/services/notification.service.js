@@ -8,23 +8,35 @@ import {
 } from '../repositories/notification.repository.js';
 
 // 알림생성
-export const createNotificationService = async ({
-  userUuid,
-  type,
-  targetType,
-  targetId = null,
-}) => {
-  return createNotification({
-    userUuid,
-    type,
-    targetType,
-    targetId,
-  });
+export const createNotificationService = async (
+  { userUuid, type, targetType, targetId = null, metadata = null },
+  tx,
+) => {
+  return createNotification(
+    {
+      userUuid,
+      type,
+      targetType,
+      targetId,
+      metadata,
+    },
+    tx,
+  );
 };
 
 // 내 알림 목록 조회
 export const getMyNotificationsService = async (userUuid) => {
-  return findNotificationsByUserUuid(userUuid);
+  const notifications = await findNotificationsByUserUuid(userUuid);
+
+  return notifications.map((notification) => ({
+    id: notification.id,
+    type: notification.type,
+    ...(notification.metadata ?? {}),
+    targetType: notification.targetType,
+    targetId: notification.targetId,
+    isRead: notification.isRead,
+    createdAt: notification.createdAt,
+  }));
 };
 
 // 알림 읽음 처리
