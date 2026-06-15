@@ -13,10 +13,12 @@ import {
   findSaleCardRepository,
   updateUserPhotocardOwnerAndStatusRepository,
   findPendingTradesBySaleRepository,
+  updateTradesStatusRepository,
 } from '../repositories/trades.repository.js';
 import {
   decreaseSaleRemainingQuantityRepository,
   updateSaleStatusRepository,
+  updateUserPhotocardsStatusRepository,
 } from '../repositories/sales.repository.js';
 
 // 특정 판매글의 교환 제안 목록을 조회
@@ -176,134 +178,144 @@ export const getMyTradesBySaleService = async ({ saleId, userUuid }) => {
 };
 
 export const acceptTradeService = async ({ tradeId, userUuid }) => {
-  return prisma.$transaction(async (tx) => {
-    // 교환 제안 조회 및 검증
-    const trade = await findTradeByIdRepository(tradeId, tx);
+  return prisma.$transaction(
+    async (tx) => {
+      // 교환 제안 조회 및 검증
+      const trade = await findTradeByIdRepository(tradeId, tx);
 
-    if (!trade) {
-      throw AppError(ERROR_CODES.TRADE_NOT_FOUND);
-    }
-
-    if (trade.receiverUuid !== userUuid) {
-      throw AppError(ERROR_CODES.NOT_TRADE_RECEIVER);
-    }
-
-    if (trade.status !== 'PENDING') {
-      throw AppError(ERROR_CODES.INVALID_TRADE_STATUS);
-    }
-
-    const sale = trade.sale;
-
-    // 판매글 상태 검증
-    if (sale.status !== 'SALE') {
-      throw AppError(ERROR_CODES.INVALID_SALE_STATUS);
-    }
-
-    if (sale.remainingQuantity <= 0) {
-      throw AppError(ERROR_CODES.INSUFFICIENT_SALE_QUANTITY);
-    }
-
-    // 제안 카드 상태 검증
-    if (trade.offeredCard.status !== 'TRADE_PENDING') {
-      throw AppError(ERROR_CODES.CARD_NOT_AVAILABLE_FOR_TRADE);
-    }
-
-    // 판매 중인 카드 조회
-    const saleCard = await findSaleCardRepository(
-      {
-        ownerUuid: sale.userUuid,
-        photocardId: sale.photocardId,
-      },
-      tx,
-    );
-
-    if (!saleCard) {
-      throw AppError(ERROR_CODES.CARD_NOT_AVAILABLE_FOR_TRADE);
-    }
-
-    // 카드 소유권 교환
-    await updateUserPhotocardOwnerAndStatusRepository(
-      {
-        id: saleCard.id,
-        ownerUuid: trade.proposerUuid,
-        status: 'OWNED',
-      },
-      tx,
-    );
-
-    await updateUserPhotocardOwnerAndStatusRepository(
-      {
-        id: trade.offeredCardId,
-        ownerUuid: trade.receiverUuid,
-        status: 'OWNED',
-      },
-      tx,
-    );
-
-    // 판매글 잔여 수량 차감
-    const decreaseResult = await decreaseSaleRemainingQuantityRepository(
-      {
-        saleId: sale.id,
-        quantity: 1,
-      },
-      tx,
-    );
-
-    if (decreaseResult.count === 0) {
-      throw AppError(ERROR_CODES.INSUFFICIENT_SALE_QUANTITY);
-    }
-
-    const nextRemainingQuantity = sale.remainingQuantity - 1;
-
-    // 품절 처리 및 대기 중인 교환 제안 취소
-    if (nextRemainingQuantity === 0) {
-      await updateSaleStatusRepository(
-        {
-          saleId: sale.id,
-          status: 'SOLD_OUT',
-        },
-        tx,
-      );
-
-      const pendingTrades = await findPendingTradesBySaleRepository(
-        {
-          saleId: sale.id,
-          tradeId,
-        },
-        tx,
-      );
-
-      for (const pendingTrade of pendingTrades) {
-        await updateTradeStatusRepository(
-          {
-            tradeId: pendingTrade.id,
-            status: 'CANCELED',
-          },
-          tx,
-        );
-
-        await updateUserPhotocardStatusRepository(
-          {
-            id: pendingTrade.offeredCardId,
-            status: 'OWNED',
-          },
-          tx,
-        );
+      if (!trade) {
+        throw AppError(ERROR_CODES.TRADE_NOT_FOUND);
       }
-    }
 
-    // 교환 상태 변경
-    const acceptedTrade = await updateTradeStatusRepository(
-      {
-        tradeId,
-        status: 'ACCEPTED',
-      },
-      tx,
-    );
+      if (trade.receiverUuid !== userUuid) {
+        throw AppError(ERROR_CODES.NOT_TRADE_RECEIVER);
+      }
 
-    return {
-      id: acceptedTrade.id,
-      status: acceptedTrade.status,
-    };
-  });
+      if (trade.status !== 'PENDING') {
+        throw AppError(ERROR_CODES.INVALID_TRADE_STATUS);
+      }
+
+      const sale = trade.sale;
+
+      // 판매글 상태 검증
+      if (sale.status !== 'SALE') {
+        throw AppError(ERROR_CODES.INVALID_SALE_STATUS);
+      }
+
+      if (sale.remainingQuantity <= 0) {
+        throw AppError(ERROR_CODES.INSUFFICIENT_SALE_QUANTITY);
+      }
+
+      // 제안 카드 상태 검증
+      if (trade.offeredCard.status !== 'TRADE_PENDING') {
+        throw AppError(ERROR_CODES.CARD_NOT_AVAILABLE_FOR_TRADE);
+      }
+
+      // 판매 중인 카드 조회
+      const saleCard = await findSaleCardRepository(
+        {
+          ownerUuid: sale.userUuid,
+          photocardId: sale.photocardId,
+        },
+        tx,
+      );
+
+      if (!saleCard) {
+        throw AppError(ERROR_CODES.CARD_NOT_AVAILABLE_FOR_TRADE);
+      }
+
+      // 카드 소유권 교환
+      await updateUserPhotocardOwnerAndStatusRepository(
+        {
+          id: saleCard.id,
+          ownerUuid: trade.proposerUuid,
+          status: 'OWNED',
+        },
+        tx,
+      );
+
+      await updateUserPhotocardOwnerAndStatusRepository(
+        {
+          id: trade.offeredCardId,
+          ownerUuid: trade.receiverUuid,
+          status: 'OWNED',
+        },
+        tx,
+      );
+
+      // 판매글 잔여 수량 차감
+      const decreaseResult = await decreaseSaleRemainingQuantityRepository(
+        {
+          saleId: sale.id,
+          quantity: 1,
+        },
+        tx,
+      );
+
+      if (decreaseResult.count === 0) {
+        throw AppError(ERROR_CODES.INSUFFICIENT_SALE_QUANTITY);
+      }
+
+      const nextRemainingQuantity = sale.remainingQuantity - 1;
+
+      // 품절 처리 및 대기 중인 교환 제안 취소
+      if (nextRemainingQuantity === 0) {
+        await updateSaleStatusRepository(
+          {
+            saleId: sale.id,
+            status: 'SOLD_OUT',
+          },
+          tx,
+        );
+
+        const pendingTrades = await findPendingTradesBySaleRepository(
+          {
+            saleId: sale.id,
+            tradeId,
+          },
+          tx,
+        );
+
+        const pendingTradeIds = pendingTrades.map((trade) => trade.id);
+        const pendingOfferedCardIds = pendingTrades.map(
+          (trade) => trade.offeredCardId,
+        );
+
+        if (pendingTradeIds.length > 0) {
+          await updateTradesStatusRepository(
+            {
+              tradeIds: pendingTradeIds,
+              status: 'CANCELED',
+            },
+            tx,
+          );
+
+          await updateUserPhotocardsStatusRepository(
+            {
+              userPhotocardIds: pendingOfferedCardIds,
+              status: 'OWNED',
+            },
+            tx,
+          );
+        }
+      }
+
+      // 교환 상태 변경
+      const acceptedTrade = await updateTradeStatusRepository(
+        {
+          tradeId,
+          status: 'ACCEPTED',
+        },
+        tx,
+      );
+
+      return {
+        id: acceptedTrade.id,
+        status: acceptedTrade.status,
+      };
+    },
+    {
+      timeout: 10000,
+    },
+  );
 };

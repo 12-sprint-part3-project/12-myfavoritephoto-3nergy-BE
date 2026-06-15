@@ -508,6 +508,134 @@ router.post(
  */
 router.patch('/:tradeId/cancel', authenticate, cancelTradeController);
 
+/**
+ * @swagger
+ * /api/trades/{tradeId}/accept:
+ *   patch:
+ *     summary: 교환 제안 수락
+ *     description: 판매자가 본인 판매글에 들어온 PENDING 상태의 교환 제안을 수락하고 카드 소유권을 교환합니다.
+ *     tags: [Trades]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tradeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 수락할 교환 제안 ID
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: 교환 제안 수락 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: 교환 제안을 수락했습니다.
+ *               data:
+ *                 id: 1
+ *                 status: ACCEPTED
+ *               error: null
+ *       400:
+ *         description: 입력값 검증 실패
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INVALID_INPUT
+ *                 message: 입력값이 올바르지 않습니다.
+ *       401:
+ *         description: 인증 실패
+ *         content:
+ *           application/json:
+ *             examples:
+ *               invalidToken:
+ *                 summary: 유효하지 않은 Access Token
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_ACCESS_TOKEN
+ *                     message: 유효하지 않은 Access Token입니다.
+ *               expiredToken:
+ *                 summary: Access Token 만료
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: ACCESS_TOKEN_EXPIRED
+ *                     message: Access Token이 만료되었습니다.
+ *       403:
+ *         description: 교환 제안 수락 권한 없음
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: NOT_TRADE_RECEIVER
+ *                 message: 교환 제안을 받은 사용자만 수락할 수 있습니다.
+ *       404:
+ *         description: 존재하지 않는 교환 제안
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: TRADE_NOT_FOUND
+ *                 message: 존재하지 않는 교환 제안입니다.
+ *       409:
+ *         description: 교환 수락 불가
+ *         content:
+ *           application/json:
+ *             examples:
+ *               invalidTradeStatus:
+ *                 summary: 처리할 수 없는 교환 상태
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_TRADE_STATUS
+ *                     message: 현재 상태에서는 교환 제안을 처리할 수 없습니다.
+ *               invalidSaleStatus:
+ *                 summary: 판매글 상태가 유효하지 않음
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_SALE_STATUS
+ *                     message: 현재 상태에서는 교환을 수락할 수 없는 판매글입니다.
+ *               insufficientSaleQuantity:
+ *                 summary: 판매글 잔여 수량 부족
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INSUFFICIENT_SALE_QUANTITY
+ *                     message: 판매 가능한 수량이 부족합니다.
+ *               cardNotAvailableForTrade:
+ *                 summary: 제안 카드 상태가 유효하지 않음
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: CARD_NOT_AVAILABLE_FOR_TRADE
+ *                     message: 현재 교환할 수 없는 카드입니다.
+ *       500:
+ *         description: 서버 내부 오류
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INTERNAL_SERVER_ERROR
+ *                 message: 서버 내부 오류가 발생했습니다.
+ */
 router.patch('/:tradeId/accept', authenticate, acceptTradeController);
 
 export default router;

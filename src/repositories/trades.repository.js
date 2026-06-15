@@ -208,3 +208,19 @@ export const findPendingTradesBySaleRepository = async (
     },
   });
 };
+
+export const updateTradesStatusRepository = async (
+  { tradeIds, status },
+  tx = prisma,
+) => {
+  return tx.trade.updateMany({
+    where: {
+      id: {
+        in: tradeIds,
+      },
+    },
+    data: {
+      status,
+    },
+  });
+};
