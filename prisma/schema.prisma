@@ -129,7 +129,7 @@ model Photocard {
   creatorUuid   String  @map("creator_uuid") @db.Uuid
   name          String  @db.VarChar(100)
   imageUrl      String  @map("image_url") @db.VarChar(500)
-  description   String?
+  description   String  @db.VarChar(500)
   grade         Grade
   genre         Genre
   totalQuantity Int     @map("total_quantity")
@@ -256,6 +256,7 @@ model Trade {
   receiverUuid  String      @map("receiver_uuid") @db.Uuid
   saleId        Int         @map("sale_id")
   offeredCardId Int         @map("offered_card_id")
+  description   String      @default("") @db.VarChar(500)
   status        TradeStatus
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)

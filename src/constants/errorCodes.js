@@ -182,6 +182,24 @@ export const ERROR_CODES = {
     message: '본인의 판매글에는 교환을 제안할 수 없습니다.',
   },
 
+  SALE_NOT_TRADEABLE: {
+    status: 409,
+    code: 'SALE_NOT_TRADEABLE',
+    message: '현재 교환 제안할 수 없는 판매글입니다.',
+  },
+
+  OFFERED_CARD_NOT_FOUND: {
+    status: 404,
+    code: 'OFFERED_CARD_NOT_FOUND',
+    message: '교환 제안 카드가 존재하지 않습니다.',
+  },
+
+  CARD_NOT_AVAILABLE_FOR_TRADE: {
+    status: 409,
+    code: 'CARD_NOT_AVAILABLE_FOR_TRADE',
+    message: '현재 교환 제안할 수 없는 카드입니다.',
+  },
+
   // =========================
   // REQUEST VALIDATION
   // =========================

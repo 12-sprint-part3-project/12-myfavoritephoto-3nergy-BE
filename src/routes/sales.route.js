@@ -6,6 +6,7 @@ import {
   getSaleDetailController,
   updateSaleController,
   cancelSaleController,
+  purchaseSaleController,
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validate, validateQuery } from '../middlewares/validate.middleware.js';
@@ -16,6 +17,7 @@ import {
 import {
   createSaleBodySchema,
   updateSaleBodySchema,
+  purchaseSaleBodySchema,
 } from '../validators/photocardBody.schema.js';
 
 const router = express.Router();
@@ -973,3 +975,172 @@ export default router;
  *                     message: 서버 내부 오류가 발생했습니다.
  */
 router.patch('/:saleId/cancel', authenticate, cancelSaleController);
+
+/**
+ * @swagger
+ * /api/sales/{saleId}/purchase:
+ *   post:
+ *     summary: 포토카드 구매
+ *     description: |
+ *       판매 중인 포토카드를 구매합니다.
+ *
+ *       구매 성공 시 구매자 포인트가 차감되고, 판매자 포인트가 적립됩니다.
+ *       판매자의 ON_SALE 상태 UserPhotocard는 구매자 소유의 OWNED 상태로 변경됩니다.
+ *       구매 수량만큼 판매글의 remainingQuantity가 감소하며, 0이 되면 SOLD_OUT 상태로 변경됩니다.
+ *
+ *       재고 차감은 동시 구매 상황을 고려하여 remainingQuantity >= quantity 조건을 포함한 조건부 업데이트로 처리합니다.
+ *     tags:
+ *       - Sales
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: saleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 319
+ *         description: 구매할 판매글 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - quantity
+ *             properties:
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 example: 1
+ *                 description: 구매 수량
+ *     responses:
+ *       200:
+ *         description: 구매 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 sale:
+ *                   id: 319
+ *                   remainingQuantity: 4
+ *                   status: SALE
+ *                 purchase:
+ *                   quantity: 1
+ *                   totalPrice: 9500
+ *                 photocard:
+ *                   id: 529
+ *                   name: 테스트 포토카드 85
+ *                   grade: common
+ *                 buyer:
+ *                   uuid: 24abf681-b35b-4918-934f-59d012af9e0c
+ *                 seller:
+ *                   uuid: 90d36b48-114a-424e-b525-09e6ffd91a5f
+ *               error: null
+ *       400:
+ *         description: 입력값 검증 실패
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INVALID_INPUT
+ *                 message: 입력값이 올바르지 않습니다.
+ *       401:
+ *         description: 인증 실패
+ *         content:
+ *           application/json:
+ *             examples:
+ *               AccessTokenMissing:
+ *                 summary: Access Token 누락
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: ACCESS_TOKEN_MISSING
+ *                     message: Access Token이 필요합니다.
+ *               AccessTokenExpired:
+ *                 summary: Access Token 만료
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: ACCESS_TOKEN_EXPIRED
+ *                     message: Access Token이 만료되었습니다.
+ *               InvalidAccessToken:
+ *                 summary: 유효하지 않은 Access Token
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_ACCESS_TOKEN
+ *                     message: 유효하지 않은 Access Token입니다.
+ *       403:
+ *         description: 본인 판매글 구매 시도
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: CANNOT_PURCHASE_OWN_SALE
+ *                 message: 본인의 판매글은 구매할 수 없습니다.
+ *       404:
+ *         description: 판매글을 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: SALE_NOT_FOUND
+ *                 message: 존재하지 않는 판매글입니다.
+ *       409:
+ *         description: 구매 불가 상태 또는 구매 조건 불충족
+ *         content:
+ *           application/json:
+ *             examples:
+ *               SaleNotPurchasable:
+ *                 summary: 구매할 수 없는 판매글 상태
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: SALE_NOT_PURCHASABLE
+ *                     message: 현재 구매할 수 없는 판매글입니다.
+ *               InsufficientSaleQuantity:
+ *                 summary: 구매 가능 수량 부족
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INSUFFICIENT_SALE_QUANTITY
+ *                     message: 구매 가능한 수량이 부족합니다.
+ *               InsufficientPoint:
+ *                 summary: 포인트 부족
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INSUFFICIENT_POINT
+ *                     message: 보유 포인트가 부족합니다.
+ *       500:
+ *         description: 서버 내부 오류
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INTERNAL_SERVER_ERROR
+ *                 message: 서버 내부 오류가 발생했습니다.
+ */
+router.post(
+  '/:saleId/purchase',
+  authenticate,
+  validate(purchaseSaleBodySchema),
+  purchaseSaleController,
+);

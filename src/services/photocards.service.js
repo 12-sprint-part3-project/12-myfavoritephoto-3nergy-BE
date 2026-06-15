@@ -13,7 +13,7 @@ export const getCardsListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const { cardsList } = await findCardsListRepository({
+  const { cardsList, totalCount } = await findCardsListRepository({
     userUuid: query.userUuid,
     page,
     pageSize,
@@ -31,6 +31,7 @@ export const getCardsListService = async (query) => {
     if (!cardMap.has(photocard.id)) {
       cardMap.set(photocard.id, {
         id: photocard.id,
+        userPhotocardIds: [],
         name: photocard.name,
         imageUrl: photocard.imageUrl,
         grade: photocard.grade,
@@ -42,7 +43,10 @@ export const getCardsListService = async (query) => {
       });
     }
 
-    cardMap.get(photocard.id).quantity += 1;
+    const mappedCard = cardMap.get(photocard.id);
+
+    mappedCard.quantity += 1;
+    mappedCard.userPhotocardIds.push(card.id);
   });
 
   const photocards = Array.from(cardMap.values());
@@ -65,6 +69,8 @@ export const getCardsListService = async (query) => {
     }),
   );
 
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   return {
     data: {
       gradeCounts: formattedGradeCounts,
@@ -73,9 +79,9 @@ export const getCardsListService = async (query) => {
     meta: {
       page,
       pageSize,
-      totalCount: photocards.length,
-      totalPages: 1,
-      hasNextPage: false,
+      totalCount,
+      totalPages,
+      hasNextPage: page < totalPages,
     },
   };
 };

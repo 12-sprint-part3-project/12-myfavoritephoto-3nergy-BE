@@ -54,3 +54,7 @@ export const updateSaleBodySchema = z
   .refine((data) => Object.keys(data).length > 0, {
     message: '수정할 내용을 입력해 주세요.',
   });
+
+export const purchaseSaleBodySchema = z.object({
+  quantity: z.coerce.number().int().min(1, '구매 수량은 1 이상이어야 합니다.'),
+});
