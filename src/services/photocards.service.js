@@ -13,14 +13,11 @@ export const getCardsListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const { cardsList, totalCount } = await findCardsListRepository({
+  const { cardsList } = await findCardsListRepository({
     userUuid: query.userUuid,
-    page,
-    pageSize,
     grade: query.grade,
     genre: query.genre,
     keyword: query.keyword,
-    sort: query.sort,
   });
 
   const cardMap = new Map();
@@ -40,6 +37,7 @@ export const getCardsListService = async (query) => {
         description: photocard.description,
         quantity: 0,
         ownerNickname: card.owner.nickname,
+        acquiredAt: card.acquiredAt,
       });
     }
 
@@ -69,12 +67,25 @@ export const getCardsListService = async (query) => {
     }),
   );
 
+  const sortMap = {
+    latest: (a, b) => new Date(b.acquiredAt) - new Date(a.acquiredAt),
+    oldest: (a, b) => new Date(a.acquiredAt) - new Date(b.acquiredAt),
+    price_asc: (a, b) => a.price - b.price,
+    price_desc: (a, b) => b.price - a.price,
+  };
+
+  const sortFunction = sortMap[query.sort] || sortMap.latest;
+  const sortedPhotocards = [...photocards].sort(sortFunction);
+
+  const totalCount = sortedPhotocards.length;
   const totalPages = Math.ceil(totalCount / pageSize);
+  const start = (page - 1) * pageSize;
+  const pagedPhotocards = sortedPhotocards.slice(start, start + pageSize);
 
   return {
     data: {
       gradeCounts: formattedGradeCounts,
-      photocards,
+      photocards: pagedPhotocards,
     },
     meta: {
       page,
