@@ -115,3 +115,42 @@ export const updateTradeStatusRepository = async (
     },
   });
 };
+
+// 특정 판매글에 내가 제시한 교환 목록 조회
+export const findMyTradesBySaleRepository = async ({
+  saleId,
+  proposerUuid,
+}) => {
+  return prisma.trade.findMany({
+    where: {
+      saleId,
+      proposerUuid,
+      status: 'PENDING',
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    include: {
+      receiver: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
+      offeredCard: {
+        include: {
+          photocard: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+              grade: true,
+              genre: true,
+              price: true,
+            },
+          },
+        },
+      },
+    },
+  });
+};

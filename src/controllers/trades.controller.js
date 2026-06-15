@@ -52,3 +52,19 @@ export const cancelTradeController = async (req, res, next) => {
     next(error);
   }
 };
+
+// 특정 판매글에 내가 제시한 교환 목록 조회
+export const getMyTradesBySaleController = async (req, res, next) => {
+  try {
+    const trades = await getMyTradesBySaleService({
+      saleId: Number(req.params.saleId),
+      userUuid: req.user.userUuid,
+    });
+
+    return sendSuccess(res, 200, {
+      trades,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

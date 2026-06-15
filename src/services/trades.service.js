@@ -136,3 +136,31 @@ export const cancelTradeService = async ({ tradeId, userUuid }) => {
     };
   });
 };
+
+// 특정 판매글에 내가 제시한 교환 목록 조회
+export const getMyTradesBySaleService = async ({ saleId, userUuid }) => {
+  const trades = await findMyTradesBySaleRepository({
+    saleId,
+    proposerUuid: userUuid,
+  });
+
+  return trades.map((trade) => ({
+    id: trade.id,
+    status: trade.status,
+    offeredCard: {
+      id: trade.offeredCard.photocard.id,
+      userPhotocardId: trade.offeredCard.id,
+      name: trade.offeredCard.photocard.name,
+      imageUrl: trade.offeredCard.photocard.imageUrl,
+      grade: trade.offeredCard.photocard.grade,
+      genre: trade.offeredCard.photocard.genre,
+      price: trade.offeredCard.photocard.price,
+      description: trade.description,
+    },
+    receiver: {
+      uuid: trade.receiver.uuid,
+      nickname: trade.receiver.nickname,
+    },
+    createdAt: trade.createdAt,
+  }));
+};
