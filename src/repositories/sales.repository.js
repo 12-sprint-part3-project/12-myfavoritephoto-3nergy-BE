@@ -294,6 +294,7 @@ export const transferUserPhotocardsRepository = async (
     data: {
       ownerUuid,
       status: 'OWNED',
+      acquiredAt: new Date(),
     },
   });
 };
