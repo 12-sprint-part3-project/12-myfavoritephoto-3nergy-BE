@@ -3,6 +3,7 @@ import {
   createTradeService,
   getMyTradesBySaleService,
   cancelTradeService,
+  acceptTradeService,
 } from '../services/trades.service.js';
 import { sendSuccess } from '../helpers/response.helper.js';
 
@@ -66,6 +67,24 @@ export const getMyTradesBySaleController = async (req, res, next) => {
     return sendSuccess(res, 200, {
       trades,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 교환 제안 수락
+export const acceptTradeController = async (req, res, next) => {
+  try {
+    const tradeId = Number(req.params.tradeId);
+    const { userUuid } = req.user;
+
+    if (!Number.isInteger(tradeId) || tradeId <= 0) {
+      throw AppError(ERROR_CODES.INVALID_INPUT);
+    }
+
+    const result = await acceptTradeService({ tradeId, userUuid });
+
+    return sendSuccess(res, 200, result, '교환 제안을 수락했습니다.');
   } catch (error) {
     next(error);
   }
