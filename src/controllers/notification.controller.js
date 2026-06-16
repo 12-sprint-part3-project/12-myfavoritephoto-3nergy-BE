@@ -48,8 +48,6 @@ export const subscribeNotification = async (req, res) => {
 
   addSseClient(userUuid, res);
 
-  console.log('SSE connected:', userUuid);
-
   // 연결 확인용
   res.write(
     `event: connected\n` +
@@ -65,8 +63,6 @@ export const subscribeNotification = async (req, res) => {
 
   req.on('close', () => {
     clearInterval(heartbeat);
-
-    console.log('SSE disconnected:', userUuid);
 
     removeSseClient(userUuid);
   });
