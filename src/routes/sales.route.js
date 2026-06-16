@@ -95,6 +95,43 @@ const router = express.Router();
  *                   type: boolean
  *                   example: true
  *                 data:
+ *                   gradeCounts:
+ *                     - grade: common
+ *                       count: 20
+ *                     - grade: rare
+ *                       count: 8
+ *                     - grade: super_rare
+ *                       count: 3
+ *                     - grade: legendary
+ *                       count: 5
+ *
+ *                   genreCounts:
+ *                     - genre: album
+ *                       count: 12
+ *                     - genre: special
+ *                       count: 3
+ *                     - genre: landscape
+ *                       count: 8
+ *                     - genre: season_greeting
+ *                       count: 2
+ *                     - genre: fan_meeting
+ *                       count: 1
+ *                     - genre: concert
+ *                       count: 4
+ *                     - genre: md
+ *                       count: 7
+ *                     - genre: collage
+ *                       count: 2
+ *                     - genre: branding
+ *                       count: 1
+ *                     - genre: etc
+ *                       count: 0
+ *
+ *                   saleStatusCounts:
+ *                     - status: SALE
+ *                       count: 28
+ *                     - status: SOLD_OUT
+ *                       count: 4
  *                   type: array
  *                   items:
  *                     type: object
