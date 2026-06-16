@@ -20,6 +20,9 @@ import {
   updateSaleStatusRepository,
   updateUserPhotocardsStatusRepository,
 } from '../repositories/sales.repository.js';
+import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';
+import { createNotificationService } from './notification.service.js';
+import { findUserNicknameByUuid } from '../repositories/user.repository.js';
 
 // 특정 판매글의 교환 제안 목록을 조회
 export const getReceivedTradesBySaleService = async ({ saleId, userUuid }) => {
@@ -85,6 +88,8 @@ export const createTradeService = async ({
   }
 
   return prisma.$transaction(async (tx) => {
+    const proposer = await findUserNicknameByUuid(userUuid, tx);
+
     const trade = await createTradeRepository(
       {
         saleId,
@@ -101,6 +106,26 @@ export const createTradeService = async ({
       {
         id: offeredCardId,
         status: 'TRADE_PENDING',
+      },
+      tx,
+    );
+
+    await createNotificationService(
+      {
+        userUuid: sale.userUuid,
+        ...NOTIFICATION_PRESET.TRADE_PROPOSED,
+        targetId: sale.id,
+        metadata: {
+          actor: {
+            uuid: userUuid,
+            nickname: proposer.nickname,
+          },
+          photocard: {
+            id: sale.photocard.id,
+            name: sale.photocard.name,
+            grade: sale.photocard.grade,
+          },
+        },
       },
       tx,
     );
@@ -139,6 +164,26 @@ export const cancelTradeService = async ({ tradeId, userUuid }) => {
         {
           tradeId,
           status: 'CANCELED',
+        },
+        tx,
+      );
+
+      await createNotificationService(
+        {
+          userUuid: trade.receiverUuid,
+          ...NOTIFICATION_PRESET.TRADE_CANCELED,
+          targetId: trade.saleId,
+          metadata: {
+            actor: {
+              uuid: trade.proposer.uuid,
+              nickname: trade.proposer.nickname,
+            },
+            photocard: {
+              id: trade.sale.photocard.id,
+              name: trade.sale.photocard.name,
+              grade: trade.sale.photocard.grade,
+            },
+          },
         },
         tx,
       );
@@ -302,6 +347,24 @@ export const acceptTradeService = async ({ tradeId, userUuid }) => {
             },
             tx,
           );
+
+          for (const pendingTrade of pendingTrades) {
+            await createNotificationService(
+              {
+                userUuid: pendingTrade.proposerUuid,
+                ...NOTIFICATION_PRESET.TRADE_CANCELED_BY_SOLD_OUT,
+                targetId: sale.id,
+                metadata: {
+                  photocard: {
+                    id: sale.photocard.id,
+                    name: sale.photocard.name,
+                    grade: sale.photocard.grade,
+                  },
+                },
+              },
+              tx,
+            );
+          }
         }
       }
 
@@ -310,6 +373,27 @@ export const acceptTradeService = async ({ tradeId, userUuid }) => {
         {
           tradeId,
           status: 'ACCEPTED',
+        },
+        tx,
+      );
+
+      // 교환 수락 알림 생성
+      await createNotificationService(
+        {
+          userUuid: trade.proposerUuid,
+          ...NOTIFICATION_PRESET.TRADE_ACCEPTED,
+          targetId: null,
+          metadata: {
+            actor: {
+              uuid: trade.receiver.uuid,
+              nickname: trade.receiver.nickname,
+            },
+            photocard: {
+              id: trade.sale.photocard.id,
+              name: trade.sale.photocard.name,
+              grade: trade.sale.photocard.grade,
+            },
+          },
         },
         tx,
       );
@@ -356,6 +440,27 @@ export const rejectTradeService = async ({ tradeId, userUuid }) => {
         {
           tradeId,
           status: 'REJECTED',
+        },
+        tx,
+      );
+
+      // 교환 거절 알림 생성
+      await createNotificationService(
+        {
+          userUuid: trade.proposerUuid,
+          ...NOTIFICATION_PRESET.TRADE_REJECTED,
+          targetId: trade.saleId,
+          metadata: {
+            actor: {
+              uuid: trade.receiver.uuid,
+              nickname: trade.receiver.nickname,
+            },
+            photocard: {
+              id: trade.sale.photocard.id,
+              name: trade.sale.photocard.name,
+              grade: trade.sale.photocard.grade,
+            },
+          },
         },
         tx,
       );

@@ -31,6 +31,10 @@ import {
 import { createNotificationService } from './notification.service.js';
 import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';
 import { findUserNicknameByUuid } from '../repositories/user.repository.js';
+import {
+  findPendingTradesBySaleIdRepository,
+  updateTradesStatusRepository,
+} from '../repositories/trades.repository.js';
 
 export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
@@ -193,7 +197,7 @@ export const getMySalesService = async (query) => {
   });
 
   const mySales = mySalesList.map((sale) => ({
-    saleid: sale.id,
+    saleId: sale.id,
     name: sale.photocard.name,
     imageUrl: sale.photocard.imageUrl,
     grade: sale.photocard.grade,
@@ -208,7 +212,7 @@ export const getMySalesService = async (query) => {
   }));
 
   const tradePendingCards = pendingTrades.map((trade) => ({
-    saleid: trade.saleId,
+    saleId: trade.saleId,
     tradeId: trade.id,
     offeredCardId: trade.offeredCard.id,
     name: trade.offeredCard.photocard.name,
@@ -472,6 +476,25 @@ export const updateSaleService = async (saleId, userUuid, updateData) => {
         );
       }
     }
+    const pendingTrades = await findPendingTradesBySaleIdRepository(saleId, tx);
+
+    for (const trade of pendingTrades) {
+      await createNotificationService(
+        {
+          userUuid: trade.proposerUuid,
+          ...NOTIFICATION_PRESET.SALE_UPDATED,
+          targetId: saleId,
+          metadata: {
+            photocard: {
+              id: sale.photocard.id,
+              name: sale.photocard.name,
+              grade: sale.photocard.grade,
+            },
+          },
+        },
+        tx,
+      );
+    }
     return updateSaleRepository(saleId, filteredData, tx);
   });
   return {
@@ -484,34 +507,84 @@ export const cancelSaleService = async (saleId, userUuid) => {
 
   // 판매글 수정과 포토카드 상태 변경을
   // 하나의 트랜잭션으로 처리
-  const data = await prisma.$transaction(async (tx) => {
-    const canceledSale = await cancelSaleRepository(saleId, tx);
+  const data = await prisma.$transaction(
+    async (tx) => {
+      const canceledSale = await cancelSaleRepository(saleId, tx);
 
-    const onSaleCards = await findOnSaleUserPhotocardsRepository(
-      {
-        ownerUuid: sale.userUuid,
-        photocardId: sale.photocardId,
-        quantity: sale.remainingQuantity,
-      },
-      tx,
-    );
+      const onSaleCards = await findOnSaleUserPhotocardsRepository(
+        {
+          ownerUuid: sale.userUuid,
+          photocardId: sale.photocardId,
+          quantity: sale.remainingQuantity,
+        },
+        tx,
+      );
 
-    if (onSaleCards.length < sale.remainingQuantity) {
-      throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
-    }
+      if (onSaleCards.length < sale.remainingQuantity) {
+        throw AppError(ERROR_CODES.NOT_ENOUGH_QUANTITY);
+      }
 
-    const selectedUserPhotocardIds = onSaleCards.map((card) => card.id);
+      const selectedUserPhotocardIds = onSaleCards.map((card) => card.id);
 
-    await updateUserPhotocardsStatusRepository(
-      {
-        userPhotocardIds: selectedUserPhotocardIds,
-        status: 'OWNED',
-      },
-      tx,
-    );
+      await updateUserPhotocardsStatusRepository(
+        {
+          userPhotocardIds: selectedUserPhotocardIds,
+          status: 'OWNED',
+        },
+        tx,
+      );
+      const pendingTrades = await findPendingTradesBySaleIdRepository(
+        saleId,
+        tx,
+      );
 
-    return canceledSale;
-  });
+      const pendingTradeIds = pendingTrades.map((trade) => trade.id);
+      const pendingOfferedCardIds = pendingTrades.map(
+        (trade) => trade.offeredCardId,
+      );
+
+      if (pendingTradeIds.length > 0) {
+        await updateTradesStatusRepository(
+          {
+            tradeIds: pendingTradeIds,
+            status: 'CANCELED',
+          },
+          tx,
+        );
+
+        await updateUserPhotocardsStatusRepository(
+          {
+            userPhotocardIds: pendingOfferedCardIds,
+            status: 'OWNED',
+          },
+          tx,
+        );
+
+        for (const trade of pendingTrades) {
+          await createNotificationService(
+            {
+              userUuid: trade.proposerUuid,
+              ...NOTIFICATION_PRESET.SALE_STOPPED,
+              targetId: saleId,
+              metadata: {
+                photocard: {
+                  id: sale.photocard.id,
+                  name: sale.photocard.name,
+                  grade: sale.photocard.grade,
+                },
+              },
+            },
+            tx,
+          );
+        }
+      }
+
+      return canceledSale;
+    },
+    {
+      timeout: 10000,
+    },
+  );
 
   return {
     data,
