@@ -218,6 +218,12 @@ export const ERROR_CODES = {
     message: '접근 권한이 없습니다.',
   },
 
+  NOT_FOUND: {
+    statusCode: 404,
+    code: 'NOT_FOUND',
+    message: '요청한 API 경로를 찾을 수 없습니다.',
+  },
+
   RESOURCE_NOT_FOUND: {
     statusCode: 404,
     code: 'RESOURCE_NOT_FOUND',
@@ -248,5 +254,15 @@ export const ERROR_CODES = {
     statusCode: 401,
     code: 'GOOGLE_AUTH_FAILED',
     message: 'Google 인증에 실패했습니다.',
+  },
+
+  // =========================
+  // Notification
+  // =========================
+
+  NOTIFICATION_NOT_FOUND: {
+    code: 'NOTIFICATION_NOT_FOUND',
+    message: '알림을 찾을 수 없습니다.',
+    statusCode: 404,
   },
 };

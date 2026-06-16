@@ -183,6 +183,12 @@ export const findSaleForUpdateRepository = async (saleId, tx = prisma) => {
       status: true,
       quantity: true,
       remainingQuantity: true,
+      seller: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
       photocard: {
         select: {
           id: true,

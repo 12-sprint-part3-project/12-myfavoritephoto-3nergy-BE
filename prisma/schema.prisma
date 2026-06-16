@@ -281,6 +281,7 @@ model Notification {
   targetType NotificationTargetType @map("target_type")
   targetId   Int?                   @map("target_id")
   isRead     Boolean                @default(false) @map("is_read")
+  metadata   Json?
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)

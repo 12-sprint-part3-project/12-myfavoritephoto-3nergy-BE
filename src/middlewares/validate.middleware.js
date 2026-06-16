@@ -30,3 +30,18 @@ export const validateQuery = (schema) => {
     next();
   };
 };
+
+export const validateParams = (schema) => {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.params);
+
+    if (!result.success) {
+      const message = result.error.issues[0].message;
+
+      return next(AppError({ ...ERROR_CODES.INVALID_INPUT, message }));
+    }
+
+    req.params = result.data;
+    next();
+  };
+};
