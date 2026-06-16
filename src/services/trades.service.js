@@ -111,42 +111,47 @@ export const createTradeService = async ({
 
 // 교환 제안 취소
 export const cancelTradeService = async ({ tradeId, userUuid }) => {
-  return prisma.$transaction(async (tx) => {
-    const trade = await findTradeByIdRepository(tradeId, tx);
+  return prisma.$transaction(
+    async (tx) => {
+      const trade = await findTradeByIdRepository(tradeId, tx);
 
-    if (!trade) {
-      throw AppError(ERROR_CODES.TRADE_NOT_FOUND);
-    }
+      if (!trade) {
+        throw AppError(ERROR_CODES.TRADE_NOT_FOUND);
+      }
 
-    if (trade.proposerUuid !== userUuid) {
-      throw AppError(ERROR_CODES.NOT_TRADE_PROPOSER);
-    }
+      if (trade.proposerUuid !== userUuid) {
+        throw AppError(ERROR_CODES.NOT_TRADE_PROPOSER);
+      }
 
-    if (trade.status !== 'PENDING') {
-      throw AppError(ERROR_CODES.INVALID_TRADE_STATUS);
-    }
+      if (trade.status !== 'PENDING') {
+        throw AppError(ERROR_CODES.INVALID_TRADE_STATUS);
+      }
 
-    await updateUserPhotocardStatusRepository(
-      {
-        id: trade.offeredCardId,
-        status: 'OWNED',
-      },
-      tx,
-    );
+      await updateUserPhotocardStatusRepository(
+        {
+          id: trade.offeredCardId,
+          status: 'OWNED',
+        },
+        tx,
+      );
 
-    const canceledTrade = await updateTradeStatusRepository(
-      {
-        tradeId,
-        status: 'CANCELED',
-      },
-      tx,
-    );
+      const canceledTrade = await updateTradeStatusRepository(
+        {
+          tradeId,
+          status: 'CANCELED',
+        },
+        tx,
+      );
 
-    return {
-      id: canceledTrade.id,
-      status: canceledTrade.status,
-    };
-  });
+      return {
+        id: canceledTrade.id,
+        status: canceledTrade.status,
+      };
+    },
+    {
+      timeout: 10000,
+    },
+  );
 };
 
 // 특정 판매글에 내가 제시한 교환 목록 조회
@@ -321,42 +326,47 @@ export const acceptTradeService = async ({ tradeId, userUuid }) => {
 };
 
 export const rejectTradeService = async ({ tradeId, userUuid }) => {
-  return prisma.$transaction(async (tx) => {
-    const trade = await findTradeByIdRepository(tradeId, tx);
+  return prisma.$transaction(
+    async (tx) => {
+      const trade = await findTradeByIdRepository(tradeId, tx);
 
-    if (!trade) {
-      throw AppError(ERROR_CODES.TRADE_NOT_FOUND);
-    }
+      if (!trade) {
+        throw AppError(ERROR_CODES.TRADE_NOT_FOUND);
+      }
 
-    if (trade.receiverUuid !== userUuid) {
-      throw AppError(ERROR_CODES.NOT_TRADE_RECEIVER);
-    }
+      if (trade.receiverUuid !== userUuid) {
+        throw AppError(ERROR_CODES.NOT_TRADE_RECEIVER);
+      }
 
-    if (trade.status !== 'PENDING') {
-      throw AppError(ERROR_CODES.INVALID_TRADE_STATUS);
-    }
+      if (trade.status !== 'PENDING') {
+        throw AppError(ERROR_CODES.INVALID_TRADE_STATUS);
+      }
 
-    // 제안 카드 상태 복구
-    await updateUserPhotocardStatusRepository(
-      {
-        id: trade.offeredCardId,
-        status: 'OWNED',
-      },
-      tx,
-    );
+      // 제안 카드 상태 복구
+      await updateUserPhotocardStatusRepository(
+        {
+          id: trade.offeredCardId,
+          status: 'OWNED',
+        },
+        tx,
+      );
 
-    // 교환 상태 변경
-    const rejectedTrade = await updateTradeStatusRepository(
-      {
-        tradeId,
-        status: 'REJECTED',
-      },
-      tx,
-    );
+      // 교환 상태 변경
+      const rejectedTrade = await updateTradeStatusRepository(
+        {
+          tradeId,
+          status: 'REJECTED',
+        },
+        tx,
+      );
 
-    return {
-      id: rejectedTrade.id,
-      status: rejectedTrade.status,
-    };
-  });
+      return {
+        id: rejectedTrade.id,
+        status: rejectedTrade.status,
+      };
+    },
+    {
+      timeout: 10000,
+    },
+  );
 };

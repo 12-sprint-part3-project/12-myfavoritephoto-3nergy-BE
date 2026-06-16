@@ -639,6 +639,115 @@ router.patch('/:tradeId/cancel', authenticate, cancelTradeController);
  */
 router.patch('/:tradeId/accept', authenticate, acceptTradeController);
 
+/**
+ * @swagger
+ * /api/trades/{tradeId}/reject:
+ *   patch:
+ *     summary: 교환 제안 거절
+ *     description: 판매자가 본인 판매글에 들어온 PENDING 상태의 교환 제안을 거절합니다.
+ *     tags: [Trades]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tradeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 거절할 교환 제안 ID
+ *         example: 1
+ *
+ *     responses:
+ *       200:
+ *         description: 교환 제안 거절 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: 교환 제안을 거절했습니다.
+ *               data:
+ *                 id: 1
+ *                 status: REJECTED
+ *               error: null
+ *
+ *       400:
+ *         description: 입력값 검증 실패
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INVALID_INPUT
+ *                 message: 입력값이 올바르지 않습니다.
+ *
+ *       401:
+ *         description: 인증 실패
+ *         content:
+ *           application/json:
+ *             examples:
+ *               invalidToken:
+ *                 summary: 유효하지 않은 Access Token
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: INVALID_ACCESS_TOKEN
+ *                     message: 유효하지 않은 Access Token입니다.
+ *
+ *               expiredToken:
+ *                 summary: Access Token 만료
+ *                 value:
+ *                   success: false
+ *                   data: null
+ *                   error:
+ *                     code: ACCESS_TOKEN_EXPIRED
+ *                     message: Access Token이 만료되었습니다.
+ *
+ *       403:
+ *         description: 교환 제안 거절 권한 없음
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: NOT_TRADE_RECEIVER
+ *                 message: 교환 제안을 받은 사용자만 거절할 수 있습니다.
+ *
+ *       404:
+ *         description: 존재하지 않는 교환 제안
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: TRADE_NOT_FOUND
+ *                 message: 존재하지 않는 교환 제안입니다.
+ *
+ *       409:
+ *         description: 처리할 수 없는 교환 상태
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INVALID_TRADE_STATUS
+ *                 message: 현재 상태에서는 교환 제안을 처리할 수 없습니다.
+ *
+ *       500:
+ *         description: 서버 내부 오류
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INTERNAL_SERVER_ERROR
+ *                 message: 서버 내부 오류가 발생했습니다.
+ */
 router.patch('/:tradeId/reject', authenticate, rejectTradeController);
 
 export default router;
