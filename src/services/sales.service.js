@@ -36,14 +36,11 @@ export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const { salesList, totalCount } = await findSalesListRepository({
-    page,
-    pageSize,
+  const salesList = await findSalesListRepository({
     grade: query.grade,
     genre: query.genre,
     keyword: query.keyword,
     status: query.status,
-    sort: query.sort,
   });
 
   const data = salesList.map((sale) => ({
@@ -52,15 +49,56 @@ export const getSalesListService = async (query) => {
     quantity: sale.quantity,
     remainingQuantity: sale.remainingQuantity,
     status: sale.status,
+    grade: sale.photocard.grade,
+    genre: sale.photocard.genre,
     createdAt: sale.createdAt,
     photocard: sale.photocard,
     seller: sale.seller,
   }));
 
+  const gradeCounts = buildFilterCounts({
+    items: data,
+    field: 'grade',
+    values: GRADE_VALUES,
+    responseKey: 'grade',
+  });
+
+  const genreCounts = buildFilterCounts({
+    items: data,
+    field: 'genre',
+    values: GENRE_VALUES,
+    responseKey: 'genre',
+  });
+
+  const saleStatusCounts = buildFilterCounts({
+    items: data,
+    field: 'status',
+    values: SALE_STATUS_VALUES,
+    responseKey: 'status',
+  });
+
+  const sortMap = {
+    latest: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    oldest: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+    price_asc: (a, b) => a.price - b.price,
+    price_desc: (a, b) => b.price - a.price,
+  };
+
+  const sortFunction = sortMap[query.sort] || sortMap.latest;
+  const sortedData = [...data].sort(sortFunction);
+
+  const totalCount = sortedData.length;
   const totalPages = Math.ceil(totalCount / pageSize);
+  const start = (page - 1) * pageSize;
+  const pagedData = sortedData.slice(start, start + pageSize);
 
   return {
-    data,
+    data: {
+      gradeCounts,
+      genreCounts,
+      saleStatusCounts,
+      sales: pagedData,
+    },
     meta: {
       page,
       pageSize,
@@ -155,7 +193,7 @@ export const getMySalesService = async (query) => {
   });
 
   const mySales = mySalesList.map((sale) => ({
-    id: sale.id,
+    saleid: sale.id,
     name: sale.photocard.name,
     imageUrl: sale.photocard.imageUrl,
     grade: sale.photocard.grade,
@@ -170,7 +208,9 @@ export const getMySalesService = async (query) => {
   }));
 
   const tradePendingCards = pendingTrades.map((trade) => ({
-    id: trade.offeredCard.id,
+    saleid: trade.saleId.id,
+    tradeId: trade.id,
+    offeredCardId: trade.offeredCard.id,
     name: trade.offeredCard.photocard.name,
     imageUrl: trade.offeredCard.photocard.imageUrl,
     grade: trade.offeredCard.photocard.grade,
