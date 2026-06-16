@@ -200,6 +200,25 @@ export const ERROR_CODES = {
     message: '현재 교환 제안할 수 없는 카드입니다.',
   },
 
+  NOT_TRADE_PROPOSER: {
+    status: 403,
+    message: '교환 제안을 생성한 사용자만 취소할 수 있습니다.',
+  },
+
+  INVALID_TRADE_STATUS: {
+    status: 409,
+    message: '현재 상태에서는 교환 제안을 취소할 수 없습니다.',
+  },
+
+  NOT_TRADE_RECEIVER: {
+    status: 403,
+    message: '교환 제안을 받은 사용자만 수락할 수 있습니다.',
+  },
+
+  INVALID_SALE_STATUS: {
+    status: 409,
+    message: '현재 상태에서는 교환을 수락할 수 없는 판매글입니다.',
+  },
   // =========================
   // REQUEST VALIDATION
   // =========================

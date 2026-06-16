@@ -50,6 +50,10 @@ export const getCardsListService = async (query) => {
 
     mappedCard.quantity += 1;
     mappedCard.userPhotocardIds.push(card.id);
+
+    if (new Date(card.acquiredAt) > new Date(mappedCard.acquiredAt)) {
+      mappedCard.acquiredAt = card.acquiredAt;
+    }
   });
 
   const photocards = Array.from(cardMap.values());
