@@ -208,7 +208,7 @@ export const getMySalesService = async (query) => {
   }));
 
   const tradePendingCards = pendingTrades.map((trade) => ({
-    saleid: trade.saleId.id,
+    saleid: trade.saleId,
     tradeId: trade.id,
     offeredCardId: trade.offeredCard.id,
     name: trade.offeredCard.photocard.name,

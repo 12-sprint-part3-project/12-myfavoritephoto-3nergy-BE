@@ -15,7 +15,7 @@ export const findSalesListRepository = async ({
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
-  const salesList = await prisma.sale.findMany({
+  return prisma.sale.findMany({
     where,
 
     include: {
@@ -38,10 +38,6 @@ export const findSalesListRepository = async ({
       },
     },
   });
-
-  return {
-    salesList,
-  };
 };
 
 export const createSaleRepository = async (data, tx = prisma) => {
