@@ -12,7 +12,7 @@ import {
   GRADE_VALUES,
 } from '../helpers/buildFilterCounts.helper.js';
 
-const MONTHLY_PHOTOCARD_CREATION_LIMIT = 3; // 월 3장 제한
+const MONTHLY_PHOTOCARD_CREATION_LIMIT = 3000; // 월 3장 제한
 
 export const getCardsListService = async (query) => {
   const page = Number(query.page) || 1;
