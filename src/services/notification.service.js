@@ -6,13 +6,14 @@ import {
   findNotificationsByUserUuid,
   markNotificationAsRead,
 } from '../repositories/notification.repository.js';
+import { sendNotificationToUser } from '../utills/sse.js';
 
 // 알림생성
 export const createNotificationService = async (
   { userUuid, type, targetType, targetId = null, metadata = null },
   tx,
 ) => {
-  return createNotification(
+  const notification = await createNotification(
     {
       userUuid,
       type,
@@ -22,6 +23,22 @@ export const createNotificationService = async (
     },
     tx,
   );
+
+  try {
+    sendNotificationToUser(userUuid, {
+      id: notification.id,
+      type: notification.type,
+      ...(notification.metadata ?? {}),
+      targetType: notification.targetType,
+      targetId: notification.targetId,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
+    });
+  } catch (error) {
+    console.error('SSE notification send failed:', error);
+  }
+
+  return notification;
 };
 
 // 내 알림 목록 조회
