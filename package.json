@@ -10,7 +10,9 @@
     "start": "node src/server.js",
     "lint": "eslint .",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "studio:performance": "dotenv -e .env.performance -- prisma studio",
+    "seed:performance": "dotenv -e .env.performance -- node prisma/seed.large.js"
   },
   "repository": {
     "type": "git",
