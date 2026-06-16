@@ -6,6 +6,7 @@ import {
   cancelTradeController,
   getMyTradesBySaleController,
   acceptTradeController,
+  rejectTradeController,
 } from '../controllers/trades.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { createTradeBodySchema } from '../validators/trades.schema.js';
@@ -637,5 +638,7 @@ router.patch('/:tradeId/cancel', authenticate, cancelTradeController);
  *                 message: 서버 내부 오류가 발생했습니다.
  */
 router.patch('/:tradeId/accept', authenticate, acceptTradeController);
+
+router.patch('/:tradeId/reject', authenticate, rejectTradeController);
 
 export default router;

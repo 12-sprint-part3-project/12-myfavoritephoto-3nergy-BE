@@ -319,3 +319,44 @@ export const acceptTradeService = async ({ tradeId, userUuid }) => {
     },
   );
 };
+
+export const rejectTradeService = async ({ tradeId, userUuid }) => {
+  return prisma.$transaction(async (tx) => {
+    const trade = await findTradeByIdRepository(tradeId, tx);
+
+    if (!trade) {
+      throw AppError(ERROR_CODES.TRADE_NOT_FOUND);
+    }
+
+    if (trade.receiverUuid !== userUuid) {
+      throw AppError(ERROR_CODES.NOT_TRADE_RECEIVER);
+    }
+
+    if (trade.status !== 'PENDING') {
+      throw AppError(ERROR_CODES.INVALID_TRADE_STATUS);
+    }
+
+    // 제안 카드 상태 복구
+    await updateUserPhotocardStatusRepository(
+      {
+        id: trade.offeredCardId,
+        status: 'OWNED',
+      },
+      tx,
+    );
+
+    // 교환 상태 변경
+    const rejectedTrade = await updateTradeStatusRepository(
+      {
+        tradeId,
+        status: 'REJECTED',
+      },
+      tx,
+    );
+
+    return {
+      id: rejectedTrade.id,
+      status: rejectedTrade.status,
+    };
+  });
+};
