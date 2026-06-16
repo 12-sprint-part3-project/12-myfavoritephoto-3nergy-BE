@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/server.js",
     "dev:local": "dotenv -e .env.local -- nodemon src/server.js",
+    "dev:performance": "dotenv -e .env.performance -- nodemon src/server.js",
     "start": "node src/server.js",
     "lint": "eslint .",
     "format": "prettier . --write",

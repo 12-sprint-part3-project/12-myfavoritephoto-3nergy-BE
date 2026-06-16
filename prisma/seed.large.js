@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -16,8 +17,15 @@ const SALE_COUNTS = {
 
 const TRADE_PENDING_COUNT = 10000;
 
+const HEAVY_USER_COUNT = 10;
+const HEAVY_OWNED_PER_USER = 100;
+const HEAVY_ON_SALE_PER_USER = 50;
+const HEAVY_TRADE_PENDING_PER_USER = 50;
+
 const BATCH_SIZE = 5000;
 const LOG_UNIT = 100;
+
+const passwordHash = await bcrypt.hash('Password1234!', 10);
 
 const grades = ['common', 'rare', 'super_rare', 'legendary'];
 
@@ -77,6 +85,7 @@ const createManyInBatches = async ({ model, data, label }) => {
 const clearData = async () => {
   console.log('🧹 기존 데이터 삭제 중...');
 
+  await prisma.history.deleteMany();
   await prisma.trade.deleteMany();
   await prisma.saleLog.deleteMany();
   await prisma.sale.deleteMany();
@@ -94,8 +103,8 @@ const clearData = async () => {
 
 const createUsers = async () => {
   const users = Array.from({ length: USER_COUNT }, (_, index) => ({
-    email: `large-user-${index + 1}@test.com`,
-    passwordHash: 'seed-password',
+    email: `user${index + 1}@test.com`,
+    passwordHash,
     nickname: `대용량유저${index + 1}`,
     provider: 'LOCAL',
   }));
@@ -106,11 +115,29 @@ const createUsers = async () => {
     label: 'users',
   });
 
-  return prisma.user.findMany({
-    where: { email: { startsWith: 'large-user-' } },
-    select: { uuid: true },
-    orderBy: { createdAt: 'asc' },
+  const createdUsers = await prisma.user.findMany({
+    where: {
+      email: {
+        startsWith: 'user',
+        endsWith: '@test.com',
+      },
+    },
+    select: {
+      uuid: true,
+      email: true,
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
   });
+
+  if (createdUsers.length !== USER_COUNT) {
+    throw new Error(
+      `유저 생성 개수 불일치: ${createdUsers.length} / ${USER_COUNT}`,
+    );
+  }
+
+  return createdUsers;
 };
 
 const createUserPoints = async (users) => {
@@ -143,9 +170,18 @@ const createPhotocards = async (users) => {
   });
 
   return prisma.photocard.findMany({
-    where: { name: { startsWith: '대용량 포토카드' } },
-    select: { id: true, price: true },
-    orderBy: { id: 'asc' },
+    where: {
+      name: {
+        startsWith: '대용량 포토카드',
+      },
+    },
+    select: {
+      id: true,
+      price: true,
+    },
+    orderBy: {
+      id: 'asc',
+    },
   });
 };
 
@@ -213,6 +249,7 @@ const createUserPhotocards = async ({ users, photocards }) => {
 const createSales = async ({ users, photocards }) => {
   const totalSales =
     SALE_COUNTS.SALE + SALE_COUNTS.SOLD_OUT + SALE_COUNTS.CANCELED;
+
   const sales = [];
 
   for (let index = 0; index < totalSales; index++) {
@@ -249,16 +286,30 @@ const createSales = async ({ users, photocards }) => {
 
 const createTrades = async () => {
   const pendingCards = await prisma.userPhotocard.findMany({
-    where: { status: 'TRADE_PENDING' },
-    select: { id: true, ownerUuid: true },
-    orderBy: { id: 'asc' },
+    where: {
+      status: 'TRADE_PENDING',
+    },
+    select: {
+      id: true,
+      ownerUuid: true,
+    },
+    orderBy: {
+      id: 'asc',
+    },
     take: TRADE_PENDING_COUNT,
   });
 
   const sales = await prisma.sale.findMany({
-    where: { status: 'SALE' },
-    select: { id: true, userUuid: true },
-    orderBy: { id: 'asc' },
+    where: {
+      status: 'SALE',
+    },
+    select: {
+      id: true,
+      userUuid: true,
+    },
+    orderBy: {
+      id: 'asc',
+    },
     take: TRADE_PENDING_COUNT,
   });
 
@@ -268,8 +319,6 @@ const createTrades = async () => {
     saleId: sales[index].id,
     offeredCardId: card.id,
     status: 'PENDING',
-
-    // 최신 schema에 description 필드가 있으면 유지
     description: `대용량 교환 제안 ${index + 1} 설명입니다.`,
   }));
 
@@ -280,10 +329,144 @@ const createTrades = async () => {
   });
 };
 
+const createHeavyUsersData = async ({ users, photocards }) => {
+  console.log('🏋️ 헤비 유저 데이터 생성 중...');
+
+  const heavyUsers = users.slice(0, HEAVY_USER_COUNT);
+  const userPhotocards = [];
+  const sales = [];
+  const trades = [];
+
+  let photocardCursor = 0;
+
+  for (let userIndex = 0; userIndex < heavyUsers.length; userIndex++) {
+    const heavyUser = heavyUsers[userIndex];
+
+    for (let i = 0; i < HEAVY_OWNED_PER_USER; i++) {
+      const photocard = photocards[photocardCursor++];
+
+      userPhotocards.push({
+        photocardId: photocard.id,
+        ownerUuid: heavyUser.uuid,
+        serialNumber: 5,
+        status: 'OWNED',
+        acquiredAt: new Date(),
+      });
+    }
+
+    for (let i = 0; i < HEAVY_ON_SALE_PER_USER; i++) {
+      const photocard = photocards[photocardCursor++];
+
+      userPhotocards.push({
+        photocardId: photocard.id,
+        ownerUuid: heavyUser.uuid,
+        serialNumber: 5,
+        status: 'ON_SALE',
+        acquiredAt: new Date(),
+      });
+
+      sales.push({
+        userUuid: heavyUser.uuid,
+        photocardId: photocard.id,
+        price: photocard.price,
+        quantity: 1,
+        remainingQuantity: 1,
+        status: 'SALE',
+        desiredGrade: grades[(i + userIndex) % grades.length],
+        desiredGenre: genres[(i + userIndex) % genres.length],
+        desiredDescription: `헤비 유저 ${userIndex + 1} 판매글 ${i + 1} 교환 희망 설명입니다.`,
+      });
+    }
+
+    for (let i = 0; i < HEAVY_TRADE_PENDING_PER_USER; i++) {
+      const photocard = photocards[photocardCursor++];
+      const targetSaleIndex =
+        (userIndex * HEAVY_TRADE_PENDING_PER_USER + i) % SALE_COUNTS.SALE;
+
+      userPhotocards.push({
+        photocardId: photocard.id,
+        ownerUuid: heavyUser.uuid,
+        serialNumber: 5,
+        status: 'TRADE_PENDING',
+        acquiredAt: new Date(),
+      });
+
+      trades.push({
+        proposerUuid: heavyUser.uuid,
+        receiverUuid: users[targetSaleIndex % users.length].uuid,
+        saleId: null,
+        offeredCardId: null,
+        status: 'PENDING',
+        description: `헤비 유저 ${userIndex + 1} 교환 제안 ${i + 1} 설명입니다.`,
+      });
+    }
+  }
+
+  await createManyInBatches({
+    model: prisma.userPhotocard,
+    data: userPhotocards,
+    label: 'heavy_user_photocards',
+  });
+
+  await createManyInBatches({
+    model: prisma.sale,
+    data: sales,
+    label: 'heavy_user_sales',
+  });
+
+  const createdHeavyPendingCards = await prisma.userPhotocard.findMany({
+    where: {
+      status: 'TRADE_PENDING',
+      ownerUuid: {
+        in: heavyUsers.map((user) => user.uuid),
+      },
+      serialNumber: 5,
+    },
+    select: {
+      id: true,
+      ownerUuid: true,
+    },
+    orderBy: {
+      id: 'asc',
+    },
+  });
+
+  const saleTargets = await prisma.sale.findMany({
+    where: {
+      status: 'SALE',
+    },
+    select: {
+      id: true,
+      userUuid: true,
+    },
+    orderBy: {
+      id: 'asc',
+    },
+    take: createdHeavyPendingCards.length,
+  });
+
+  const heavyTrades = createdHeavyPendingCards.map((card, index) => ({
+    proposerUuid: card.ownerUuid,
+    receiverUuid: saleTargets[index].userUuid,
+    saleId: saleTargets[index].id,
+    offeredCardId: card.id,
+    status: 'PENDING',
+    description: `헤비 유저 교환 제안 ${index + 1} 설명입니다.`,
+  }));
+
+  await createManyInBatches({
+    model: prisma.trade,
+    data: heavyTrades,
+    label: 'heavy_user_trades',
+  });
+
+  console.log('✅ 헤비 유저 데이터 생성 완료');
+};
+
 const validateData = async () => {
   console.log('📊 검증 결과');
 
-  console.log({
+  console.table({
     users: await prisma.user.count(),
     userPoints: await prisma.userPoint.count(),
     photocards: await prisma.photocard.count(),
@@ -292,18 +475,36 @@ const validateData = async () => {
     trades: await prisma.trade.count(),
 
     ownedCards: await prisma.userPhotocard.count({
-      where: { status: 'OWNED' },
+      where: {
+        status: 'OWNED',
+      },
     }),
     onSaleCards: await prisma.userPhotocard.count({
-      where: { status: 'ON_SALE' },
+      where: {
+        status: 'ON_SALE',
+      },
     }),
     tradePendingCards: await prisma.userPhotocard.count({
-      where: { status: 'TRADE_PENDING' },
+      where: {
+        status: 'TRADE_PENDING',
+      },
     }),
 
-    saleSales: await prisma.sale.count({ where: { status: 'SALE' } }),
-    soldOutSales: await prisma.sale.count({ where: { status: 'SOLD_OUT' } }),
-    canceledSales: await prisma.sale.count({ where: { status: 'CANCELED' } }),
+    saleSales: await prisma.sale.count({
+      where: {
+        status: 'SALE',
+      },
+    }),
+    soldOutSales: await prisma.sale.count({
+      where: {
+        status: 'SOLD_OUT',
+      },
+    }),
+    canceledSales: await prisma.sale.count({
+      where: {
+        status: 'CANCELED',
+      },
+    }),
   });
 };
 
@@ -337,6 +538,10 @@ const main = async () => {
   console.time('createTrades');
   await createTrades();
   console.timeEnd('createTrades');
+
+  console.time('createHeavyUsersData');
+  await createHeavyUsersData({ users, photocards });
+  console.timeEnd('createHeavyUsersData');
 
   await validateData();
 
