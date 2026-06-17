@@ -118,3 +118,17 @@ export const createPhotocardWithUserCards = async ({
     };
   });
 };
+
+// OWNED 상태 포토카드 수량 조회
+export const countOwnedPhotocardRepository = async ({
+  userUuid,
+  photocardId,
+}) => {
+  return prisma.userPhotocard.count({
+    where: {
+      ownerUuid: userUuid,
+      photocardId,
+      status: 'OWNED',
+    },
+  });
+};

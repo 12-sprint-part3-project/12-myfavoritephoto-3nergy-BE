@@ -2,6 +2,7 @@ import { ERROR_CODES } from '../constants/errorCodes.js';
 import { AppError } from '../errors/AppError.js';
 import {
   countMonthlyCreatedPhotocards,
+  countOwnedPhotocardRepository,
   createPhotocardWithUserCards,
   findCardsListRepository,
 } from '../repositories/photocards.repository.js';
@@ -124,4 +125,19 @@ export const createPhotocard = async (userUuid, body) => {
     userUuid,
     ...body,
   });
+};
+
+// OWNED 상태 포토카드 수량 조회
+export const getOwnedPhotocardQuantityService = async ({
+  userUuid,
+  photocardId,
+}) => {
+  const ownedQuantity = await countOwnedPhotocardRepository({
+    userUuid,
+    photocardId,
+  });
+
+  return {
+    ownedQuantity,
+  };
 };
