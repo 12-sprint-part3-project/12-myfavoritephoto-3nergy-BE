@@ -14,11 +14,7 @@ import {
 
 export const getSalesController = async (req, res, next) => {
   try {
-    console.time('getSalesList');
-
     const result = await getSalesListService(req.validatedQuery);
-
-    console.timeEnd('getSalesList');
 
     return sendSuccessWithMeta(res, 200, result.data, result.meta);
   } catch (error) {
@@ -41,14 +37,10 @@ export const createSaleController = async (req, res, next) => {
 
 export const getMySalesController = async (req, res, next) => {
   try {
-    console.time('getMySalesList');
-
     const result = await getMySalesService({
       userUuid: req.user.userUuid,
       ...req.validatedQuery,
     });
-
-    console.timeEnd('getMySalesList');
 
     return sendSuccessWithMeta(res, 200, result.data, result.meta);
   } catch (error) {

@@ -10,14 +10,10 @@ import {
 
 export const getCardsController = async (req, res, next) => {
   try {
-    console.time('getMyCardList');
-
     const result = await getCardsListService({
       userUuid: req.user.userUuid,
       ...req.query,
     });
-
-    console.timeEnd('getMyCardList');
 
     return sendSuccessWithMeta(res, 200, result.data, result.meta);
   } catch (error) {
