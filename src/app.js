@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import authRouter from './routes/auth.route.js';
 import salesRouter from './routes/sales.route.js';
-import photocardRouter from './routes/photocards.route.js';
+import photocardsRouter from './routes/photocards.route.js';
 import userRouter from './routes/user.route.js';
 import pointRouter from './routes/point.route.js';
 import tradesRouter from './routes/trades.route.js';
@@ -28,7 +28,7 @@ app.use(cookieParser());
 
 app.use('/api/auth', authRouter);
 app.use('/api/sales', salesRouter);
-app.use('/api/photocards', photocardRouter);
+app.use('/api/photocards', photocardsRouter);
 app.use('/api/users', userRouter);
 app.use('/api/points', pointRouter);
 app.use('/api/trades', tradesRouter);
