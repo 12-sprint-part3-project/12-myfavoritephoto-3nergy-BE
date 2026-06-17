@@ -12,6 +12,8 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
 import cookieParser from 'cookie-parser';
 import { startRefreshTokenCleanupJob } from './jobs/refreshTokenCleanup.job.js';
+import { ERROR_CODES } from './constants/errorCodes.js';
+import { AppError } from './errors/AppError.js';
 
 const app = express();
 
@@ -40,10 +42,7 @@ app.get('/', (req, res) => {
 
 // 404 처리
 app.use((req, res, next) => {
-  const error = new Error('요청한 API 경로를 찾을 수 없습니다.');
-  error.statusCode = 404;
-  error.code = 'NOT_FOUND';
-  next(error);
+  next(AppError(ERROR_CODES.NOT_FOUND));
 });
 
 // cron jobs
