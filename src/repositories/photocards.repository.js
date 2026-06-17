@@ -1,5 +1,10 @@
 import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js';
 import prisma from '../lib/prisma.js';
+import {
+  cardListInclude,
+  createdPhotocardSelect,
+  photocardListItemSelect,
+} from '../selectors/photocards.selector.js';
 
 export const findCardsListRepository = async ({
   userUuid,
@@ -10,33 +15,12 @@ export const findCardsListRepository = async ({
   const where = {
     ownerUuid: userUuid,
     status: 'OWNED',
-
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
   const cardsList = await prisma.userPhotocard.findMany({
     where,
-
-    include: {
-      photocard: {
-        select: {
-          id: true,
-          name: true,
-          imageUrl: true,
-          grade: true,
-          genre: true,
-          price: true,
-          description: true,
-        },
-      },
-
-      owner: {
-        select: {
-          uuid: true,
-          nickname: true,
-        },
-      },
-    },
+    include: cardListInclude,
   });
 
   return {
@@ -82,17 +66,7 @@ export const createPhotocardWithUserCards = async ({
         imageUrl,
         description,
       },
-      select: {
-        id: true,
-        name: true,
-        grade: true,
-        genre: true,
-        price: true,
-        totalQuantity: true,
-        imageUrl: true,
-        description: true,
-        createdAt: true,
-      },
+      select: createdPhotocardSelect,
     });
 
     const userPhotocardsData = Array.from(

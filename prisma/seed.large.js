@@ -1,26 +1,29 @@
-import bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 const PERFORMANCE_HOST = 'ep-broad-smoke-ap6mjus1';
 
-const USER_COUNT = 10000;
-const PHOTOCARD_COUNT = 50000;
-const COPIES_PER_PHOTOCARD = 4;
+const USER_COUNT = 3000;
+const PHOTOCARD_COUNT = 30000;
+const COPIES_PER_PHOTOCARD = 5;
+const USER_PHOTOCARD_COUNT = 120000;
 
 const SALE_COUNTS = {
-  SALE: 25000,
-  SOLD_OUT: 15000,
-  CANCELED: 10000,
+  SALE: 20000,
+  SOLD_OUT: 12000,
+  CANCELED: 8000,
 };
 
 const TRADE_PENDING_COUNT = 10000;
+const NOTIFICATION_COUNT = 20000;
 
 const HEAVY_USER_COUNT = 10;
-const HEAVY_OWNED_PER_USER = 100;
-const HEAVY_ON_SALE_PER_USER = 50;
-const HEAVY_TRADE_PENDING_PER_USER = 50;
+const HEAVY_SALES_PER_USER = 150;
+const HEAVY_TRADES_PER_USER = 150;
+const HEAVY_OWNED_PER_USER = 200;
+const HEAVY_NOTIFICATIONS_PER_USER = 150;
 
 const BATCH_SIZE = 5000;
 const LOG_UNIT = 100;
@@ -42,6 +45,21 @@ const genres = [
   'etc',
 ];
 
+const notificationTypes = [
+  'PURCHASE_COMPLETED',
+  'SALE_COMPLETED',
+  'SOLD_OUT',
+  'TRADE_CANCELED_BY_SOLD_OUT',
+  'TRADE_PROPOSED',
+  'TRADE_CANCELED',
+  'TRADE_ACCEPTED',
+  'TRADE_REJECTED',
+  'SALE_STOPPED',
+  'SALE_UPDATED',
+];
+
+const notificationTargetTypes = ['MY_GALLERY', 'MY_SALE_PAGE', 'SALE_DETAIL'];
+
 const validateEnvironment = () => {
   const databaseUrl = process.env.DATABASE_URL;
 
@@ -54,28 +72,33 @@ const validateEnvironment = () => {
   console.log('✅ performance-test DB 확인 완료');
 };
 
-const createManyInBatches = async ({ model, data, label }) => {
-  const total = data.length;
+const createManyInBatches = async ({
+  model,
+  totalCount,
+  label,
+  createData,
+}) => {
   let progress = 0;
 
-  for (let i = 0; i < total; i += BATCH_SIZE) {
-    await model.createMany({
-      data: data.slice(i, i + BATCH_SIZE),
-    });
+  for (let start = 0; start < totalCount; start += BATCH_SIZE) {
+    const count = Math.min(BATCH_SIZE, totalCount - start);
+    const data = createData(start, count);
 
-    const inserted = Math.min(i + BATCH_SIZE, total);
+    await model.createMany({ data });
+
+    const inserted = start + count;
 
     while (progress + LOG_UNIT <= inserted) {
       progress += LOG_UNIT;
       console.log(
-        `📦 ${label}: ${progress.toLocaleString()} / ${total.toLocaleString()}`,
+        `📦 ${label}: ${progress.toLocaleString()} / ${totalCount.toLocaleString()}`,
       );
     }
   }
 
-  if (progress < total) {
+  if (progress < totalCount) {
     console.log(
-      `📦 ${label}: ${total.toLocaleString()} / ${total.toLocaleString()}`,
+      `📦 ${label}: ${totalCount.toLocaleString()} / ${totalCount.toLocaleString()}`,
     );
   }
 
@@ -83,39 +106,83 @@ const createManyInBatches = async ({ model, data, label }) => {
 };
 
 const clearData = async () => {
-  console.log('🧹 기존 데이터 삭제 중...');
+  console.log('🧹 기존 데이터 초기화 중...');
 
-  await prisma.history.deleteMany();
-  await prisma.trade.deleteMany();
-  await prisma.saleLog.deleteMany();
-  await prisma.sale.deleteMany();
-  await prisma.userPhotocard.deleteMany();
-  await prisma.photocard.deleteMany();
-  await prisma.pointTransaction.deleteMany();
-  await prisma.userPoint.deleteMany();
-  await prisma.rewardState.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.refreshToken.deleteMany();
-  await prisma.user.deleteMany();
+  await prisma.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      histories,
+      notifications,
+      trades,
+      sale_logs,
+      point_transactions,
+      sales,
+      user_photocards,
+      photocards,
+      reward_states,
+      refresh_tokens,
+      user_points,
+      users
+    RESTART IDENTITY CASCADE;
+  `);
 
-  console.log('✅ 기존 데이터 삭제 완료');
+  console.log('✅ 기존 데이터 초기화 완료');
+};
+
+const getSaleQuantity = (index) => (index % 3) + 1;
+
+const getSaleRemainingQuantity = (index, quantity) => {
+  return (index % quantity) + 1;
+};
+
+const getSeller = (users, index) => {
+  const heavySaleTotal = HEAVY_USER_COUNT * HEAVY_SALES_PER_USER;
+
+  if (index < heavySaleTotal) {
+    return users[Math.floor(index / HEAVY_SALES_PER_USER)];
+  }
+
+  return users[index % users.length];
+};
+
+const getBuyer = (users, index, sellerUuid) => {
+  let buyer = users[(index + 777) % users.length];
+
+  if (buyer.uuid === sellerUuid) {
+    buyer = users[(index + 778) % users.length];
+  }
+
+  return buyer;
+};
+
+const getTradeProposer = (users, index) => {
+  const heavyTradeTotal = HEAVY_USER_COUNT * HEAVY_TRADES_PER_USER;
+
+  if (index < heavyTradeTotal) {
+    return users[Math.floor(index / HEAVY_TRADES_PER_USER)];
+  }
+
+  return users[(index + 333) % users.length];
 };
 
 const createUsers = async () => {
-  const users = Array.from({ length: USER_COUNT }, (_, index) => ({
-    email: `user${index + 1}@test.com`,
-    passwordHash,
-    nickname: `대용량유저${index + 1}`,
-    provider: 'LOCAL',
-  }));
-
   await createManyInBatches({
     model: prisma.user,
-    data: users,
+    totalCount: USER_COUNT,
     label: 'users',
+    createData: (start, count) =>
+      Array.from({ length: count }, (_, i) => {
+        const index = start + i + 1;
+
+        return {
+          email: `user${index}@test.com`,
+          passwordHash,
+          nickname: `대용량유저${index}`,
+          provider: 'LOCAL',
+        };
+      }),
   });
 
-  const createdUsers = await prisma.user.findMany({
+  const rows = await prisma.user.findMany({
     where: {
       email: {
         startsWith: 'user',
@@ -126,47 +193,71 @@ const createUsers = async () => {
       uuid: true,
       email: true,
     },
-    orderBy: {
-      createdAt: 'asc',
-    },
   });
 
-  if (createdUsers.length !== USER_COUNT) {
-    throw new Error(
-      `유저 생성 개수 불일치: ${createdUsers.length} / ${USER_COUNT}`,
-    );
+  const users = Array(USER_COUNT);
+
+  rows.forEach((user) => {
+    const number = Number(user.email.match(/^user(\d+)@test\.com$/)?.[1]);
+
+    if (number) {
+      users[number - 1] = user;
+    }
+  });
+
+  if (users.some((user) => !user)) {
+    throw new Error('유저 조회 결과가 USER_COUNT와 일치하지 않습니다.');
   }
 
-  return createdUsers;
+  return users;
 };
 
 const createUserPoints = async (users) => {
   await createManyInBatches({
     model: prisma.userPoint,
-    data: users.map((user) => ({
-      userUuid: user.uuid,
-      balance: 10000000,
-    })),
+    totalCount: users.length,
     label: 'user_points',
+    createData: (start, count) =>
+      users.slice(start, start + count).map((user) => ({
+        userUuid: user.uuid,
+        balance: 10000000,
+      })),
+  });
+};
+
+const createRewardStates = async (users) => {
+  await createManyInBatches({
+    model: prisma.rewardState,
+    totalCount: users.length,
+    label: 'reward_states',
+    createData: (start, count) =>
+      users.slice(start, start + count).map((user) => ({
+        userUuid: user.uuid,
+        lastDrawAt: new Date(),
+      })),
   });
 };
 
 const createPhotocards = async (users) => {
-  const photocards = Array.from({ length: PHOTOCARD_COUNT }, (_, index) => ({
-    creatorUuid: users[index % users.length].uuid,
-    name: `대용량 포토카드 ${index + 1}`,
-    imageUrl: `https://picsum.photos/seed/large-photocard-${index + 1}/400/600`,
-    description: `대용량 포토카드 ${index + 1} 설명입니다.`,
-    grade: grades[index % grades.length],
-    genre: genres[index % genres.length],
-    totalQuantity: 10,
-    price: 1000 + (index % 1000) * 10,
-  }));
-
   await createManyInBatches({
     model: prisma.photocard,
-    data: photocards,
+    totalCount: PHOTOCARD_COUNT,
     label: 'photocards',
+    createData: (start, count) =>
+      Array.from({ length: count }, (_, i) => {
+        const index = start + i;
+
+        return {
+          creatorUuid: users[index % users.length].uuid,
+          name: `대용량 포토카드 ${index + 1}`,
+          imageUrl: `https://picsum.photos/seed/large-photocard-${index + 1}/400/600`,
+          description: `대용량 포토카드 ${index + 1} 설명입니다.`,
+          grade: grades[index % grades.length],
+          genre: genres[index % genres.length],
+          totalQuantity: COPIES_PER_PHOTOCARD,
+          price: 1000 + (index % 1000) * 10,
+        };
+      }),
   });
 
   return prisma.photocard.findMany({
@@ -185,106 +276,259 @@ const createPhotocards = async (users) => {
   });
 };
 
-const createUserPhotocards = async ({ users, photocards }) => {
-  const saleStart = 0;
-  const saleEnd = SALE_COUNTS.SALE;
-
-  const tradeStart = SALE_COUNTS.SALE;
-  const tradeEnd = SALE_COUNTS.SALE + TRADE_PENDING_COUNT;
+const buildPlans = ({ users, photocards }) => {
+  const usageByPhotocardIndex = Array(PHOTOCARD_COUNT).fill(0);
+  let photocardCursor = 0;
 
   const userPhotocards = [];
+  const sales = [];
+  const salePlans = [];
+  const tradePlans = [];
 
-  for (
-    let photocardIndex = 0;
-    photocardIndex < photocards.length;
-    photocardIndex++
-  ) {
-    const seller = users[photocardIndex % users.length];
-    const proposer = users[(photocardIndex + 1) % users.length];
-
-    for (
-      let serialNumber = 1;
-      serialNumber <= COPIES_PER_PHOTOCARD;
-      serialNumber++
+  const allocateCopies = (count) => {
+    while (
+      photocardCursor < PHOTOCARD_COUNT &&
+      usageByPhotocardIndex[photocardCursor] + count > COPIES_PER_PHOTOCARD
     ) {
-      let status = 'OWNED';
-      let ownerUuid =
-        users[(photocardIndex + serialNumber) % users.length].uuid;
-
-      if (
-        photocardIndex >= saleStart &&
-        photocardIndex < saleEnd &&
-        serialNumber <= 2
-      ) {
-        status = 'ON_SALE';
-        ownerUuid = seller.uuid;
-      }
-
-      if (
-        photocardIndex >= tradeStart &&
-        photocardIndex < tradeEnd &&
-        serialNumber === 3
-      ) {
-        status = 'TRADE_PENDING';
-        ownerUuid = proposer.uuid;
-      }
-
-      userPhotocards.push({
-        photocardId: photocards[photocardIndex].id,
-        ownerUuid,
-        serialNumber,
-        status,
-        acquiredAt: new Date(),
-      });
+      photocardCursor += 1;
     }
-  }
 
-  await createManyInBatches({
-    model: prisma.userPhotocard,
-    data: userPhotocards,
-    label: 'user_photocards',
-  });
-};
+    if (photocardCursor >= PHOTOCARD_COUNT) {
+      throw new Error('포토카드 발급 가능 수량을 초과했습니다.');
+    }
 
-const createSales = async ({ users, photocards }) => {
+    const photocardIndex = photocardCursor;
+    const startSerial = usageByPhotocardIndex[photocardIndex] + 1;
+    usageByPhotocardIndex[photocardIndex] += count;
+
+    return Array.from({ length: count }, (_, i) => ({
+      photocardIndex,
+      photocard: photocards[photocardIndex],
+      serialNumber: startSerial + i,
+    }));
+  };
+
+  const addUserPhotocard = ({ copy, ownerUuid, status }) => {
+    userPhotocards.push({
+      photocardId: copy.photocard.id,
+      ownerUuid,
+      serialNumber: copy.serialNumber,
+      status,
+      acquiredAt: new Date(),
+    });
+  };
+
   const totalSales =
     SALE_COUNTS.SALE + SALE_COUNTS.SOLD_OUT + SALE_COUNTS.CANCELED;
 
-  const sales = [];
-
   for (let index = 0; index < totalSales; index++) {
-    const seller = users[index % users.length];
-    const photocard = photocards[index];
+    const seller = getSeller(users, index);
 
     let status = 'SALE';
+    let quantity = getSaleQuantity(index);
+    let remainingQuantity = getSaleRemainingQuantity(index, quantity);
 
     if (index >= SALE_COUNTS.SALE + SALE_COUNTS.SOLD_OUT) {
       status = 'CANCELED';
+      quantity = getSaleQuantity(index);
+      remainingQuantity = quantity;
     } else if (index >= SALE_COUNTS.SALE) {
       status = 'SOLD_OUT';
+      quantity = getSaleQuantity(index);
+      remainingQuantity = 0;
     }
+
+    const copies = allocateCopies(quantity);
+    const photocard = copies[0].photocard;
+    const buyer = getBuyer(users, index, seller.uuid);
+
+    copies.forEach((copy, copyIndex) => {
+      if (status === 'SALE' && copyIndex < remainingQuantity) {
+        addUserPhotocard({
+          copy,
+          ownerUuid: seller.uuid,
+          status: 'ON_SALE',
+        });
+
+        return;
+      }
+
+      if (status === 'CANCELED') {
+        addUserPhotocard({
+          copy,
+          ownerUuid: seller.uuid,
+          status: 'OWNED',
+        });
+
+        return;
+      }
+
+      addUserPhotocard({
+        copy,
+        ownerUuid: buyer.uuid,
+        status: 'OWNED',
+      });
+    });
 
     sales.push({
       userUuid: seller.uuid,
       photocardId: photocard.id,
       price: photocard.price,
-      quantity: 2,
-      remainingQuantity: status === 'SOLD_OUT' ? 0 : 2,
+      quantity,
+      remainingQuantity,
       status,
       desiredGrade: grades[(index + 1) % grades.length],
       desiredGenre: genres[(index + 1) % genres.length],
       desiredDescription: `대용량 판매글 ${index + 1} 교환 희망 설명입니다.`,
     });
+
+    salePlans.push({
+      status,
+      sellerUuid: seller.uuid,
+      buyerUuid: buyer.uuid,
+      photocardId: photocard.id,
+      quantity,
+      remainingQuantity,
+      soldQuantity: quantity - remainingQuantity,
+      price: photocard.price,
+    });
   }
 
+  for (let index = 0; index < TRADE_PENDING_COUNT; index++) {
+    const proposer = getTradeProposer(users, index);
+    const copy = allocateCopies(1)[0];
+
+    addUserPhotocard({
+      copy,
+      ownerUuid: proposer.uuid,
+      status: 'TRADE_PENDING',
+    });
+
+    tradePlans.push({
+      proposerUuid: proposer.uuid,
+      offeredPhotocardId: copy.photocard.id,
+    });
+  }
+
+  let heavyOwnedAdded = 0;
+
+  while (userPhotocards.length < USER_PHOTOCARD_COUNT) {
+    const copy = allocateCopies(1)[0];
+
+    let owner =
+      users[
+        (copy.photocardIndex * COPIES_PER_PHOTOCARD + copy.serialNumber) %
+          users.length
+      ];
+
+    if (heavyOwnedAdded < HEAVY_USER_COUNT * HEAVY_OWNED_PER_USER) {
+      owner = users[Math.floor(heavyOwnedAdded / HEAVY_OWNED_PER_USER)];
+      heavyOwnedAdded += 1;
+    }
+
+    addUserPhotocard({
+      copy,
+      ownerUuid: owner.uuid,
+      status: 'OWNED',
+    });
+  }
+
+  return {
+    userPhotocards,
+    sales,
+    salePlans,
+    tradePlans,
+  };
+};
+
+const createUserPhotocards = async (userPhotocards) => {
   await createManyInBatches({
-    model: prisma.sale,
-    data: sales,
-    label: 'sales',
+    model: prisma.userPhotocard,
+    totalCount: userPhotocards.length,
+    label: 'user_photocards',
+    createData: (start, count) => userPhotocards.slice(start, start + count),
   });
 };
 
-const createTrades = async () => {
+const createSales = async (sales) => {
+  await createManyInBatches({
+    model: prisma.sale,
+    totalCount: sales.length,
+    label: 'sales',
+    createData: (start, count) => sales.slice(start, start + count),
+  });
+
+  return prisma.sale.findMany({
+    select: {
+      id: true,
+      userUuid: true,
+      photocardId: true,
+      price: true,
+      quantity: true,
+      remainingQuantity: true,
+      status: true,
+    },
+    orderBy: {
+      id: 'asc',
+    },
+  });
+};
+
+const createSaleLogsAndPointTransactions = async ({ saleRows, salePlans }) => {
+  const logPlans = [];
+
+  salePlans.forEach((plan, index) => {
+    if (plan.soldQuantity <= 0) {
+      return;
+    }
+
+    const sale = saleRows[index];
+
+    logPlans.push({
+      saleId: sale.id,
+      buyerUuid: plan.buyerUuid,
+      sellerUuid: plan.sellerUuid,
+      photocardId: plan.photocardId,
+      quantity: plan.soldQuantity,
+      price: plan.price,
+    });
+  });
+
+  await createManyInBatches({
+    model: prisma.saleLog,
+    totalCount: logPlans.length,
+    label: 'sale_logs',
+    createData: (start, count) => logPlans.slice(start, start + count),
+  });
+
+  await createManyInBatches({
+    model: prisma.pointTransaction,
+    totalCount: logPlans.length * 2,
+    label: 'point_transactions',
+    createData: (start, count) =>
+      Array.from({ length: count }, (_, i) => {
+        const globalIndex = start + i;
+        const log = logPlans[Math.floor(globalIndex / 2)];
+        const amount = log.price * log.quantity;
+
+        if (globalIndex % 2 === 0) {
+          return {
+            userUuid: log.buyerUuid,
+            amount,
+            type: 'BUY',
+          };
+        }
+
+        return {
+          userUuid: log.sellerUuid,
+          amount,
+          type: 'SELL',
+        };
+      }),
+  });
+};
+
+const createTrades = async ({ users }) => {
   const pendingCards = await prisma.userPhotocard.findMany({
     where: {
       status: 'TRADE_PENDING',
@@ -299,7 +543,7 @@ const createTrades = async () => {
     take: TRADE_PENDING_COUNT,
   });
 
-  const sales = await prisma.sale.findMany({
+  const saleRows = await prisma.sale.findMany({
     where: {
       status: 'SALE',
     },
@@ -310,208 +554,152 @@ const createTrades = async () => {
     orderBy: {
       id: 'asc',
     },
-    take: TRADE_PENDING_COUNT,
   });
 
-  const trades = pendingCards.map((card, index) => ({
-    proposerUuid: card.ownerUuid,
-    receiverUuid: sales[index].userUuid,
-    saleId: sales[index].id,
-    offeredCardId: card.id,
-    status: 'PENDING',
-    description: `대용량 교환 제안 ${index + 1} 설명입니다.`,
-  }));
+  const salesByUserUuid = new Map();
+
+  saleRows.forEach((sale) => {
+    if (!salesByUserUuid.has(sale.userUuid)) {
+      salesByUserUuid.set(sale.userUuid, []);
+    }
+
+    salesByUserUuid.get(sale.userUuid).push(sale);
+  });
 
   await createManyInBatches({
     model: prisma.trade,
-    data: trades,
+    totalCount: pendingCards.length,
     label: 'trades',
+    createData: (start, count) =>
+      Array.from({ length: count }, (_, i) => {
+        const index = start + i;
+        const offeredCard = pendingCards[index];
+
+        let sale = saleRows[index % saleRows.length];
+
+        if (index < HEAVY_USER_COUNT * HEAVY_TRADES_PER_USER) {
+          const proposerGroup = Math.floor(index / HEAVY_TRADES_PER_USER);
+          const receiver = users[(proposerGroup + 1) % HEAVY_USER_COUNT];
+          const receiverSales = salesByUserUuid.get(receiver.uuid);
+
+          if (receiverSales?.length) {
+            sale = receiverSales[index % receiverSales.length];
+          }
+        }
+
+        if (sale.userUuid === offeredCard.ownerUuid) {
+          sale = saleRows[(index + 1) % saleRows.length];
+        }
+
+        return {
+          proposerUuid: offeredCard.ownerUuid,
+          receiverUuid: sale.userUuid,
+          saleId: sale.id,
+          offeredCardId: offeredCard.id,
+          status: 'PENDING',
+          description: `대용량 교환 제안 ${index + 1} 설명입니다.`,
+        };
+      }),
   });
 };
 
-const createHeavyUsersData = async ({ users, photocards }) => {
-  console.log('🏋️ 헤비 유저 데이터 생성 중...');
-
-  const heavyUsers = users.slice(0, HEAVY_USER_COUNT);
-  const userPhotocards = [];
-  const sales = [];
-  const trades = [];
-
-  let photocardCursor = 0;
-
-  for (let userIndex = 0; userIndex < heavyUsers.length; userIndex++) {
-    const heavyUser = heavyUsers[userIndex];
-
-    for (let i = 0; i < HEAVY_OWNED_PER_USER; i++) {
-      const photocard = photocards[photocardCursor++];
-
-      userPhotocards.push({
-        photocardId: photocard.id,
-        ownerUuid: heavyUser.uuid,
-        serialNumber: 5,
-        status: 'OWNED',
-        acquiredAt: new Date(),
-      });
-    }
-
-    for (let i = 0; i < HEAVY_ON_SALE_PER_USER; i++) {
-      const photocard = photocards[photocardCursor++];
-
-      userPhotocards.push({
-        photocardId: photocard.id,
-        ownerUuid: heavyUser.uuid,
-        serialNumber: 5,
-        status: 'ON_SALE',
-        acquiredAt: new Date(),
-      });
-
-      sales.push({
-        userUuid: heavyUser.uuid,
-        photocardId: photocard.id,
-        price: photocard.price,
-        quantity: 1,
-        remainingQuantity: 1,
-        status: 'SALE',
-        desiredGrade: grades[(i + userIndex) % grades.length],
-        desiredGenre: genres[(i + userIndex) % genres.length],
-        desiredDescription: `헤비 유저 ${userIndex + 1} 판매글 ${i + 1} 교환 희망 설명입니다.`,
-      });
-    }
-
-    for (let i = 0; i < HEAVY_TRADE_PENDING_PER_USER; i++) {
-      const photocard = photocards[photocardCursor++];
-      const targetSaleIndex =
-        (userIndex * HEAVY_TRADE_PENDING_PER_USER + i) % SALE_COUNTS.SALE;
-
-      userPhotocards.push({
-        photocardId: photocard.id,
-        ownerUuid: heavyUser.uuid,
-        serialNumber: 5,
-        status: 'TRADE_PENDING',
-        acquiredAt: new Date(),
-      });
-
-      trades.push({
-        proposerUuid: heavyUser.uuid,
-        receiverUuid: users[targetSaleIndex % users.length].uuid,
-        saleId: null,
-        offeredCardId: null,
-        status: 'PENDING',
-        description: `헤비 유저 ${userIndex + 1} 교환 제안 ${i + 1} 설명입니다.`,
-      });
-    }
-  }
-
+const createNotifications = async ({ users, saleRows }) => {
   await createManyInBatches({
-    model: prisma.userPhotocard,
-    data: userPhotocards,
-    label: 'heavy_user_photocards',
+    model: prisma.notification,
+    totalCount: NOTIFICATION_COUNT,
+    label: 'notifications',
+    createData: (start, count) =>
+      Array.from({ length: count }, (_, i) => {
+        const index = start + i;
+
+        let user = users[index % users.length];
+
+        if (index < HEAVY_USER_COUNT * HEAVY_NOTIFICATIONS_PER_USER) {
+          user = users[Math.floor(index / HEAVY_NOTIFICATIONS_PER_USER)];
+        }
+
+        const targetType =
+          notificationTargetTypes[index % notificationTargetTypes.length];
+
+        const sale = saleRows[index % saleRows.length];
+
+        return {
+          userUuid: user.uuid,
+          type: notificationTypes[index % notificationTypes.length],
+          targetType,
+          targetId: targetType === 'SALE_DETAIL' ? sale.id : null,
+          isRead: index % 3 === 0,
+        };
+      }),
   });
-
-  await createManyInBatches({
-    model: prisma.sale,
-    data: sales,
-    label: 'heavy_user_sales',
-  });
-
-  const createdHeavyPendingCards = await prisma.userPhotocard.findMany({
-    where: {
-      status: 'TRADE_PENDING',
-      ownerUuid: {
-        in: heavyUsers.map((user) => user.uuid),
-      },
-      serialNumber: 5,
-    },
-    select: {
-      id: true,
-      ownerUuid: true,
-    },
-    orderBy: {
-      id: 'asc',
-    },
-  });
-
-  const saleTargets = await prisma.sale.findMany({
-    where: {
-      status: 'SALE',
-    },
-    select: {
-      id: true,
-      userUuid: true,
-    },
-    orderBy: {
-      id: 'asc',
-    },
-    take: createdHeavyPendingCards.length,
-  });
-
-  const heavyTrades = createdHeavyPendingCards.map((card, index) => ({
-    proposerUuid: card.ownerUuid,
-    receiverUuid: saleTargets[index].userUuid,
-    saleId: saleTargets[index].id,
-    offeredCardId: card.id,
-    status: 'PENDING',
-    description: `헤비 유저 교환 제안 ${index + 1} 설명입니다.`,
-  }));
-
-  await createManyInBatches({
-    model: prisma.trade,
-    data: heavyTrades,
-    label: 'heavy_user_trades',
-  });
-
-  console.log('✅ 헤비 유저 데이터 생성 완료');
 };
 
 const validateData = async () => {
   console.log('📊 검증 결과');
 
+  const saleRemainingSum = await prisma.sale.aggregate({
+    where: {
+      status: 'SALE',
+    },
+    _sum: {
+      remainingQuantity: true,
+    },
+  });
+
+  const pendingTradeCount = await prisma.trade.count({
+    where: {
+      status: 'PENDING',
+    },
+  });
+
+  const soldQuantitySum = await prisma.saleLog.aggregate({
+    _sum: {
+      quantity: true,
+    },
+  });
+
   console.table({
     users: await prisma.user.count(),
     userPoints: await prisma.userPoint.count(),
+    rewardStates: await prisma.rewardState.count(),
     photocards: await prisma.photocard.count(),
     userPhotocards: await prisma.userPhotocard.count(),
     sales: await prisma.sale.count(),
     trades: await prisma.trade.count(),
+    saleLogs: await prisma.saleLog.count(),
+    pointTransactions: await prisma.pointTransaction.count(),
+    notifications: await prisma.notification.count(),
 
     ownedCards: await prisma.userPhotocard.count({
-      where: {
-        status: 'OWNED',
-      },
+      where: { status: 'OWNED' },
     }),
     onSaleCards: await prisma.userPhotocard.count({
-      where: {
-        status: 'ON_SALE',
-      },
+      where: { status: 'ON_SALE' },
     }),
     tradePendingCards: await prisma.userPhotocard.count({
-      where: {
-        status: 'TRADE_PENDING',
-      },
+      where: { status: 'TRADE_PENDING' },
     }),
 
     saleSales: await prisma.sale.count({
-      where: {
-        status: 'SALE',
-      },
+      where: { status: 'SALE' },
     }),
     soldOutSales: await prisma.sale.count({
-      where: {
-        status: 'SOLD_OUT',
-      },
+      where: { status: 'SOLD_OUT' },
     }),
     canceledSales: await prisma.sale.count({
-      where: {
-        status: 'CANCELED',
-      },
+      where: { status: 'CANCELED' },
     }),
+
+    saleRemainingSum: saleRemainingSum._sum.remainingQuantity ?? 0,
+    pendingTradeCount,
+    soldQuantitySum: soldQuantitySum._sum.quantity ?? 0,
   });
 };
 
 const main = async () => {
   validateEnvironment();
 
-  console.time('large-seed');
+  console.time('qa-large-seed');
 
   await clearData();
 
@@ -523,29 +711,44 @@ const main = async () => {
   await createUserPoints(users);
   console.timeEnd('createUserPoints');
 
+  console.time('createRewardStates');
+  await createRewardStates(users);
+  console.timeEnd('createRewardStates');
+
   console.time('createPhotocards');
   const photocards = await createPhotocards(users);
   console.timeEnd('createPhotocards');
 
-  console.time('createUserPhotocards');
-  await createUserPhotocards({ users, photocards });
-  console.timeEnd('createUserPhotocards');
+  console.time('buildPlans');
+  const plans = buildPlans({ users, photocards });
+  console.timeEnd('buildPlans');
 
   console.time('createSales');
-  await createSales({ users, photocards });
+  const saleRows = await createSales(plans.sales);
   console.timeEnd('createSales');
 
+  console.time('createUserPhotocards');
+  await createUserPhotocards(plans.userPhotocards);
+  console.timeEnd('createUserPhotocards');
+
+  console.time('createSaleLogsAndPointTransactions');
+  await createSaleLogsAndPointTransactions({
+    saleRows,
+    salePlans: plans.salePlans,
+  });
+  console.timeEnd('createSaleLogsAndPointTransactions');
+
   console.time('createTrades');
-  await createTrades();
+  await createTrades({ users });
   console.timeEnd('createTrades');
 
-  console.time('createHeavyUsersData');
-  await createHeavyUsersData({ users, photocards });
-  console.timeEnd('createHeavyUsersData');
+  console.time('createNotifications');
+  await createNotifications({ users, saleRows });
+  console.timeEnd('createNotifications');
 
   await validateData();
 
-  console.timeEnd('large-seed');
+  console.timeEnd('qa-large-seed');
 };
 
 main()
