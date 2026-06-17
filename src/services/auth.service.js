@@ -182,6 +182,7 @@ export const getGoogleLoginUrl = () => {
     redirect_uri: process.env.GOOGLE_REDIRECT_URI,
     response_type: 'code',
     scope: 'openid email profile',
+    prompt: 'select_account',
   });
 
   return `${baseUrl}?${params.toString()}`;
