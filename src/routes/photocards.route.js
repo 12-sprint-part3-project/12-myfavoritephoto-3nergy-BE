@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createPhotocardController,
   getCardsController,
+  getOwnedPhotocardQuantityController,
 } from '../controllers/photocards.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { validate, validateQuery } from '../middlewares/validate.middleware.js';
@@ -158,6 +159,7 @@ router.get(
   validateQuery(getGalleryListQuerySchema),
   getCardsController,
 );
+
 /**
  * @swagger
  * /api/photocards:
@@ -232,6 +234,12 @@ router.post(
   authenticate,
   validate(createPhotocardBodySchema),
   createPhotocardController,
+);
+
+router.get(
+  '/:photocardId/ownedQuantity',
+  authenticate,
+  getOwnedPhotocardQuantityController,
 );
 
 export default router;
