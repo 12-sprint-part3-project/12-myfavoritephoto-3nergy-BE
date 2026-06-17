@@ -5,6 +5,7 @@ import {
   myPendingTradeInclude,
   mySaleListInclude,
   ownedPhotocardSelect,
+  saleCountsSelect,
   saleDetailInclude,
   saleForUpdateSelect,
   saleListInclude,
@@ -13,12 +14,26 @@ import {
   userPhotocardIdSelect,
 } from '../selectors/sales.selector.js';
 
+const buildSaleOrderBy = (sort) => {
+  const orderByMap = {
+    latest: { createdAt: 'desc' },
+    oldest: { createdAt: 'asc' },
+    price_asc: { price: 'asc' },
+    price_desc: { price: 'desc' },
+  };
+
+  return orderByMap[sort] || orderByMap.latest;
+};
+
 // 전체 판매 목록 조회
 export const findSalesListRepository = async ({
   grade,
   genre,
   keyword,
   status,
+  sort,
+  skip,
+  take,
 }) => {
   const where = {
     status: status || {
@@ -26,10 +41,27 @@ export const findSalesListRepository = async ({
     },
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
-  return prisma.sale.findMany({
-    where,
-    include: saleListInclude,
-  });
+
+  const [salesList, totalCount, countBaseSales] = await prisma.$transaction([
+    prisma.sale.findMany({
+      where,
+      orderBy: buildSaleOrderBy(sort),
+      skip,
+      take,
+      include: saleListInclude,
+    }),
+
+    prisma.sale.count({
+      where,
+    }),
+
+    prisma.sale.findMany({
+      where,
+      select: saleCountsSelect,
+    }),
+  ]);
+
+  return { salesList, totalCount, countBaseSales };
 };
 
 // 판매 등록

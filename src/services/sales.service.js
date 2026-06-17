@@ -39,15 +39,21 @@ import {
 export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
+  const skip = (page - 1) * pageSize;
+  const take = pageSize;
 
-  const salesList = await findSalesListRepository({
-    grade: query.grade,
-    genre: query.genre,
-    keyword: query.keyword,
-    status: query.status,
-  });
+  const { salesList, totalCount, countBaseSales } =
+    await findSalesListRepository({
+      grade: query.grade,
+      genre: query.genre,
+      keyword: query.keyword,
+      status: query.status,
+      sort: query.sort,
+      skip,
+      take,
+    });
 
-  const data = salesList.map((sale) => ({
+  const sales = salesList.map((sale) => ({
     saleId: sale.id,
     price: sale.price,
     quantity: sale.quantity,
@@ -60,22 +66,28 @@ export const getSalesListService = async (query) => {
     seller: sale.seller,
   }));
 
+  const countItems = countBaseSales.map((sale) => ({
+    grade: sale.photocard.grade,
+    genre: sale.photocard.genre,
+    status: sale.status,
+  }));
+
   const gradeCounts = buildFilterCounts({
-    items: data,
+    items: countItems,
     field: 'grade',
     values: GRADE_VALUES,
     responseKey: 'grade',
   });
 
   const genreCounts = buildFilterCounts({
-    items: data,
+    items: countItems,
     field: 'genre',
     values: GENRE_VALUES,
     responseKey: 'genre',
   });
 
   const saleStatusCounts = buildFilterCounts({
-    items: data,
+    items: countItems,
     field: 'status',
     values: SALE_STATUS_VALUES,
     responseKey: 'status',
@@ -88,20 +100,14 @@ export const getSalesListService = async (query) => {
     price_desc: (a, b) => b.price - a.price,
   };
 
-  const sortFunction = sortMap[query.sort] || sortMap.latest;
-  const sortedData = [...data].sort(sortFunction);
-
-  const totalCount = sortedData.length;
   const totalPages = Math.ceil(totalCount / pageSize);
-  const start = (page - 1) * pageSize;
-  const pagedData = sortedData.slice(start, start + pageSize);
 
   return {
     data: {
       gradeCounts,
       genreCounts,
       saleStatusCounts,
-      sales: pagedData,
+      sales,
     },
     meta: {
       page,

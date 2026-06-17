@@ -17,6 +17,11 @@ export const photocardForSaleUpdateSelect = {
   grade: true,
 };
 
+export const photocardForSaleCountsSelect = {
+  grade: true,
+  genre: true,
+};
+
 export const sellerSummarySelect = {
   uuid: true,
   nickname: true,
@@ -39,6 +44,13 @@ export const saleListInclude = {
   },
 };
 
+export const saleCountsSelect = {
+  status: true,
+  photocard: {
+    select: photocardForSaleCountsSelect,
+  },
+};
+
 export const mySaleListInclude = {
   photocard: {
     select: photocardSummarySelect,
@@ -58,7 +70,7 @@ export const saleDetailInclude = {
 };
 
 /*********************************
- * 판매 목록 및 상세 조회
+ * 판매 수정
  *********************************/
 
 export const saleForUpdateSelect = {
