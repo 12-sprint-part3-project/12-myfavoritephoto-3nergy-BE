@@ -5,9 +5,14 @@ import {
   getOwnedPhotocardQuantityController,
 } from '../controllers/photocards.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import { validate, validateQuery } from '../middlewares/validate.middleware.js';
+import {
+  validate,
+  validateParams,
+  validateQuery,
+} from '../middlewares/validate.middleware.js';
 import { getGalleryListQuerySchema } from '../validators/photocardQuery.schema.js';
 import { createPhotocardBodySchema } from '../validators/photocardCreate.schema.js';
+import { photocardIdParamsSchema } from '../validators/photocardParams.schema.js';
 
 const router = express.Router();
 
@@ -237,8 +242,9 @@ router.post(
 );
 
 router.get(
-  '/:photocardId/ownedQuantity',
+  '/:photocardId/owned-quantity',
   authenticate,
+  validateParams(photocardIdParamsSchema),
   getOwnedPhotocardQuantityController,
 );
 
