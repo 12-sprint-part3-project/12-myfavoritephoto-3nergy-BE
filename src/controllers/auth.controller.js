@@ -85,15 +85,11 @@ export const googleCallbackLogin = async (req, res, next) => {
   try {
     const { code } = req.query;
 
-    const { accessToken, refreshToken, user } = await googleCallback(code);
+    const { refreshToken } = await googleCallback(code);
 
-    // Refresh Token 을 HttpOnly Cookie 에 저장한다
     res.cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions());
 
-    return sendSuccess(res, 200, {
-      accessToken,
-      user,
-    });
+    return res.redirect(process.env.CLIENT_URL);
   } catch (error) {
     next(error);
   }
