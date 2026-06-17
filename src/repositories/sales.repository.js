@@ -1,6 +1,19 @@
 import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js';
 import prisma from '../lib/prisma.js';
+import {
+  cancelSaleSelect,
+  myPendingTradeInclude,
+  mySaleListInclude,
+  ownedPhotocardSelect,
+  saleDetailInclude,
+  saleForUpdateSelect,
+  saleListInclude,
+  saleStatusSelect,
+  updateSaleSelect,
+  userPhotocardIdSelect,
+} from '../selectors/sales.selector.js';
 
+// 전체 판매 목록 조회
 export const findSalesListRepository = async ({
   grade,
   genre,
@@ -11,35 +24,15 @@ export const findSalesListRepository = async ({
     status: status || {
       in: ['SALE', 'SOLD_OUT'],
     },
-
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
-
   return prisma.sale.findMany({
     where,
-
-    include: {
-      photocard: {
-        select: {
-          id: true,
-          name: true,
-          imageUrl: true,
-          grade: true,
-          genre: true,
-          description: true,
-        },
-      },
-
-      seller: {
-        select: {
-          uuid: true,
-          nickname: true,
-        },
-      },
-    },
+    include: saleListInclude,
   });
 };
 
+// 판매 등록
 export const createSaleRepository = async (data, tx = prisma) => {
   return tx.sale.create({
     data,
@@ -57,10 +50,7 @@ export const findOwnedPhotocardsRepository = async (
       photocardId,
       status: 'OWNED',
     },
-    select: {
-      id: true,
-      photocardId: true,
-    },
+    select: ownedPhotocardSelect,
     take: quantity,
   });
 };
@@ -82,6 +72,7 @@ export const updateUserPhotocardsStatusRepository = async (
   });
 };
 
+// 내 판매 목록 조회
 export const findMySalesRepository = async ({
   userUuid,
   grade,
@@ -98,17 +89,11 @@ export const findMySalesRepository = async ({
 
   return prisma.sale.findMany({
     where,
-    include: {
-      photocard: true,
-      seller: {
-        select: {
-          nickname: true,
-        },
-      },
-    },
+    include: mySaleListInclude,
   });
 };
 
+// 내 교환 제안 대기 목록 조회
 export const findMyPendingTradesRepository = async ({
   userUuid,
   grade,
@@ -123,45 +108,17 @@ export const findMyPendingTradesRepository = async ({
         photocard: buildPhotocardFilter({ grade, genre, keyword }),
       },
     },
-    include: {
-      offeredCard: {
-        include: {
-          photocard: true,
-          owner: {
-            select: {
-              nickname: true,
-            },
-          },
-        },
-      },
-    },
+    include: myPendingTradeInclude,
   });
 };
 
+// 판매 상세 조회
 export const findSaleDetailRepository = async (saleId) => {
   return prisma.sale.findUnique({
     where: {
       id: saleId,
     },
-
-    include: {
-      photocard: {
-        select: {
-          id: true,
-          name: true,
-          imageUrl: true,
-          grade: true,
-          genre: true,
-          description: true,
-        },
-      },
-      seller: {
-        select: {
-          uuid: true,
-          nickname: true,
-        },
-      },
-    },
+    include: saleDetailInclude,
   });
 };
 
@@ -171,50 +128,22 @@ export const findSaleForUpdateRepository = async (saleId, tx = prisma) => {
     where: {
       id: saleId,
     },
-    select: {
-      id: true,
-      userUuid: true,
-      photocardId: true,
-      price: true,
-      status: true,
-      quantity: true,
-      remainingQuantity: true,
-      seller: {
-        select: {
-          uuid: true,
-          nickname: true,
-        },
-      },
-      photocard: {
-        select: {
-          id: true,
-          name: true,
-          grade: true,
-        },
-      },
-    },
+    select: saleForUpdateSelect,
   });
 };
+
+// 판매글 수정
 export const updateSaleRepository = async (saleId, data, tx = prisma) => {
   return tx.sale.update({
     where: {
       id: saleId,
     },
     data,
-    select: {
-      id: true,
-      price: true,
-      quantity: true,
-      remainingQuantity: true,
-      status: true,
-      desiredGrade: true,
-      desiredGenre: true,
-      desiredDescription: true,
-      updatedAt: true,
-    },
+    select: updateSaleSelect,
   });
 };
 
+// 판매 취소
 export const cancelSaleRepository = async (saleId, tx = prisma) => {
   return tx.sale.update({
     where: {
@@ -223,11 +152,7 @@ export const cancelSaleRepository = async (saleId, tx = prisma) => {
     data: {
       status: 'CANCELED',
     },
-    select: {
-      id: true,
-      status: true,
-      updatedAt: true,
-    },
+    select: cancelSaleSelect,
   });
 };
 
@@ -242,9 +167,7 @@ export const findOnSaleUserPhotocardsRepository = async (
       photocardId,
       status: 'ON_SALE',
     },
-    select: {
-      id: true,
-    },
+    select: userPhotocardIdSelect,
     take: quantity,
   });
 };
@@ -341,10 +264,6 @@ export const updateSaleStatusRepository = async (
     data: {
       status,
     },
-    select: {
-      id: true,
-      remainingQuantity: true,
-      status: true,
-    },
+    select: saleStatusSelect,
   });
 };
