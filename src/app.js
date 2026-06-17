@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import authRouter from './routes/auth.route.js';
 import salesRouter from './routes/sales.route.js';
-import photocardsRouter from './routes/photocards.route.js';
+import photocardRouter from './routes/photocards.route.js';
 import userRouter from './routes/user.route.js';
 import pointRouter from './routes/point.route.js';
 import tradesRouter from './routes/trades.route.js';
@@ -12,6 +12,8 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
 import cookieParser from 'cookie-parser';
 import { startRefreshTokenCleanupJob } from './jobs/refreshTokenCleanup.job.js';
+import { ERROR_CODES } from './constants/errorCodes.js';
+import { AppError } from './errors/AppError.js';
 
 const app = express();
 
@@ -26,7 +28,7 @@ app.use(cookieParser());
 
 app.use('/api/auth', authRouter);
 app.use('/api/sales', salesRouter);
-app.use('/api/photocards', photocardsRouter);
+app.use('/api/photocards', photocardRouter);
 app.use('/api/users', userRouter);
 app.use('/api/points', pointRouter);
 app.use('/api/trades', tradesRouter);
@@ -40,10 +42,7 @@ app.get('/', (req, res) => {
 
 // 404 처리
 app.use((req, res, next) => {
-  const error = new Error('요청한 API 경로를 찾을 수 없습니다.');
-  error.statusCode = 404;
-  error.code = 'NOT_FOUND';
-  next(error);
+  next(AppError(ERROR_CODES.NOT_FOUND));
 });
 
 // cron jobs
