@@ -93,13 +93,6 @@ export const getSalesListService = async (query) => {
     responseKey: 'status',
   });
 
-  const sortMap = {
-    latest: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-    oldest: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-    price_asc: (a, b) => a.price - b.price,
-    price_desc: (a, b) => b.price - a.price,
-  };
-
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return {
