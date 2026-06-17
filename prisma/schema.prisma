@@ -82,6 +82,8 @@ model UserPhotocard {
   @@unique([photocardId, serialNumber])
   @@index([ownerUuid])
   @@index([photocardId])
+  @@index([ownerUuid, status])
+  @@index([ownerUuid, photocardId, status])
   @@map("user_photocards")
 }
 
@@ -134,6 +136,8 @@ model Sale {
 
   @@index([userUuid])
   @@index([photocardId])
+  @@index([userUuid, status])
+  @@index([status, createdAt])
   @@map("sales")
 }
 
@@ -177,6 +181,9 @@ model Trade {
   @@index([receiverUuid])
   @@index([saleId])
   @@index([offeredCardId])
+  @@index([saleId, status])
+  @@index([proposerUuid, status])
+  @@index([receiverUuid, status])
   @@map("trades")
 }
 
