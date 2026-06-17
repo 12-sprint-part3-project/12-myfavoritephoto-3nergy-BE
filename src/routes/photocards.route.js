@@ -11,7 +11,7 @@ import {
   validateQuery,
 } from '../middlewares/validate.middleware.js';
 import { getGalleryListQuerySchema } from '../validators/photocardQuery.schema.js';
-import { createPhotocardBodySchema } from '../validators/photocardCreate.schema.js';
+import { createPhotocardBodySchema } from '../validators/photocardBody.schema.js';
 import { photocardIdParamsSchema } from '../validators/photocardParams.schema.js';
 
 const router = express.Router();
