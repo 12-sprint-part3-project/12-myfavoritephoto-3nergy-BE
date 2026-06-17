@@ -39,15 +39,21 @@ import {
 export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
+  const skip = (page - 1) * pageSize;
+  const take = pageSize;
 
-  const salesList = await findSalesListRepository({
-    grade: query.grade,
-    genre: query.genre,
-    keyword: query.keyword,
-    status: query.status,
-  });
+  const { salesList, totalCount, countBaseSales } =
+    await findSalesListRepository({
+      grade: query.grade,
+      genre: query.genre,
+      keyword: query.keyword,
+      status: query.status,
+      sort: query.sort,
+      skip,
+      take,
+    });
 
-  const data = salesList.map((sale) => ({
+  const sales = salesList.map((sale) => ({
     saleId: sale.id,
     price: sale.price,
     quantity: sale.quantity,
@@ -60,48 +66,41 @@ export const getSalesListService = async (query) => {
     seller: sale.seller,
   }));
 
+  const countItems = countBaseSales.map((sale) => ({
+    grade: sale.photocard.grade,
+    genre: sale.photocard.genre,
+    status: sale.status,
+  }));
+
   const gradeCounts = buildFilterCounts({
-    items: data,
+    items: countItems,
     field: 'grade',
     values: GRADE_VALUES,
     responseKey: 'grade',
   });
 
   const genreCounts = buildFilterCounts({
-    items: data,
+    items: countItems,
     field: 'genre',
     values: GENRE_VALUES,
     responseKey: 'genre',
   });
 
   const saleStatusCounts = buildFilterCounts({
-    items: data,
+    items: countItems,
     field: 'status',
     values: SALE_STATUS_VALUES,
     responseKey: 'status',
   });
 
-  const sortMap = {
-    latest: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-    oldest: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-    price_asc: (a, b) => a.price - b.price,
-    price_desc: (a, b) => b.price - a.price,
-  };
-
-  const sortFunction = sortMap[query.sort] || sortMap.latest;
-  const sortedData = [...data].sort(sortFunction);
-
-  const totalCount = sortedData.length;
   const totalPages = Math.ceil(totalCount / pageSize);
-  const start = (page - 1) * pageSize;
-  const pagedData = sortedData.slice(start, start + pageSize);
 
   return {
     data: {
       gradeCounts,
       genreCounts,
       saleStatusCounts,
-      sales: pagedData,
+      sales,
     },
     meta: {
       page,
@@ -182,19 +181,20 @@ export const getMySalesService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const mySalesList = await findMySalesRepository({
-    userUuid: query.userUuid,
-    grade: query.grade,
-    genre: query.genre,
-    keyword: query.keyword,
-  });
-
-  const pendingTrades = await findMyPendingTradesRepository({
-    userUuid: query.userUuid,
-    grade: query.grade,
-    genre: query.genre,
-    keyword: query.keyword,
-  });
+  const [mySalesList, pendingTrades] = await Promise.all([
+    findMySalesRepository({
+      userUuid: query.userUuid,
+      grade: query.grade,
+      genre: query.genre,
+      keyword: query.keyword,
+    }),
+    findMyPendingTradesRepository({
+      userUuid: query.userUuid,
+      grade: query.grade,
+      genre: query.genre,
+      keyword: query.keyword,
+    }),
+  ]);
 
   const mySales = mySalesList.map((sale) => ({
     saleId: sale.id,
@@ -229,7 +229,6 @@ export const getMySalesService = async (query) => {
   }));
 
   const combinedMySales = [...mySales, ...tradePendingCards];
-
   let filteredMySales = combinedMySales;
 
   if (query.saleMethod === 'SALE') {
@@ -298,7 +297,6 @@ export const getMySalesService = async (query) => {
   const totalPages = Math.ceil(totalCount / pageSize);
   const start = (page - 1) * pageSize;
   const pagedMySales = sortedMySales.slice(start, start + pageSize);
-
   return {
     data: {
       gradeCounts,
