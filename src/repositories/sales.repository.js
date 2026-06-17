@@ -195,6 +195,7 @@ export const findSaleForUpdateRepository = async (saleId, tx = prisma) => {
     },
   });
 };
+
 export const updateSaleRepository = async (saleId, data, tx = prisma) => {
   return tx.sale.update({
     where: {

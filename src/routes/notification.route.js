@@ -3,6 +3,7 @@ import { authenticate } from '../middlewares/auth.middleware.js';
 import {
   getMyNotifications,
   readNotification,
+  subscribeNotification,
 } from '../controllers/notification.controller.js';
 import { validateParams } from '../middlewares/validate.middleware.js';
 import { notificationIdParamSchema } from '../validators/notification.schema.js';
@@ -122,5 +123,7 @@ router.patch(
   authenticate,
   readNotification,
 );
+
+router.get('/subscribe', authenticate, subscribeNotification);
 
 export default router;
