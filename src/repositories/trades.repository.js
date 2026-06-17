@@ -1,4 +1,13 @@
 import prisma from '../lib/prisma.js';
+import {
+  createTradeSelect,
+  myTradeListInclude,
+  pendingTradeSelect,
+  receivedTradeListInclude,
+  saleForTradeSelect,
+  tradeDetailInclude,
+  userPhotocardForTradeSelect,
+} from '../selectors/trades.selector.js';
 
 // 받은 교환 제안 조회
 export const findReceivedTradesBySaleRepository = async ({
@@ -14,28 +23,7 @@ export const findReceivedTradesBySaleRepository = async ({
     orderBy: {
       createdAt: 'desc',
     },
-    include: {
-      proposer: {
-        select: {
-          uuid: true,
-          nickname: true,
-        },
-      },
-      offeredCard: {
-        include: {
-          photocard: {
-            select: {
-              id: true,
-              name: true,
-              imageUrl: true,
-              grade: true,
-              genre: true,
-              price: true,
-            },
-          },
-        },
-      },
-    },
+    include: receivedTradeListInclude,
   });
 };
 
@@ -43,19 +31,7 @@ export const findReceivedTradesBySaleRepository = async ({
 export const findSaleByIdRepository = async (saleId, tx = prisma) => {
   return tx.sale.findUnique({
     where: { id: saleId },
-    select: {
-      id: true,
-      userUuid: true,
-      status: true,
-
-      photocard: {
-        select: {
-          id: true,
-          name: true,
-          grade: true,
-        },
-      },
-    },
+    select: saleForTradeSelect,
   });
 };
 
@@ -66,11 +42,7 @@ export const findUserPhotocardByIdRepository = async (
 ) => {
   return tx.userPhotocard.findUnique({
     where: { id: userPhotocardId },
-    select: {
-      id: true,
-      ownerUuid: true,
-      status: true,
-    },
+    select: userPhotocardForTradeSelect,
   });
 };
 
@@ -78,14 +50,7 @@ export const findUserPhotocardByIdRepository = async (
 export const createTradeRepository = async (data, tx = prisma) => {
   return tx.trade.create({
     data,
-    select: {
-      id: true,
-      saleId: true,
-      offeredCardId: true,
-      description: true,
-      status: true,
-      createdAt: true,
-    },
+    select: createTradeSelect,
   });
 };
 
@@ -106,32 +71,7 @@ export const findTradeByIdRepository = async (tradeId, tx = prisma) => {
     where: {
       id: tradeId,
     },
-    include: {
-      proposer: {
-        select: {
-          uuid: true,
-          nickname: true,
-        },
-      },
-      receiver: {
-        select: {
-          uuid: true,
-          nickname: true,
-        },
-      },
-      sale: {
-        include: {
-          photocard: {
-            select: {
-              id: true,
-              name: true,
-              grade: true,
-            },
-          },
-        },
-      },
-      offeredCard: true,
-    },
+    include: tradeDetailInclude,
   });
 };
 
@@ -164,28 +104,7 @@ export const findMyTradesBySaleRepository = async ({
     orderBy: {
       createdAt: 'desc',
     },
-    include: {
-      receiver: {
-        select: {
-          uuid: true,
-          nickname: true,
-        },
-      },
-      offeredCard: {
-        include: {
-          photocard: {
-            select: {
-              id: true,
-              name: true,
-              imageUrl: true,
-              grade: true,
-              genre: true,
-              price: true,
-            },
-          },
-        },
-      },
-    },
+    include: myTradeListInclude,
   });
 };
 
@@ -231,11 +150,7 @@ export const findPendingTradesBySaleRepository = async (
         id: tradeId,
       },
     },
-    select: {
-      id: true,
-      proposerUuid: true,
-      offeredCardId: true,
-    },
+    select: pendingTradeSelect,
   });
 };
 
@@ -249,11 +164,7 @@ export const findPendingTradesBySaleIdRepository = async (
       saleId,
       status: 'PENDING',
     },
-    select: {
-      id: true,
-      proposerUuid: true,
-      offeredCardId: true,
-    },
+    select: pendingTradeSelect,
   });
 };
 
