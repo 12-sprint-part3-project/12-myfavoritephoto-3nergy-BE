@@ -181,19 +181,20 @@ export const getMySalesService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const mySalesList = await findMySalesRepository({
-    userUuid: query.userUuid,
-    grade: query.grade,
-    genre: query.genre,
-    keyword: query.keyword,
-  });
-
-  const pendingTrades = await findMyPendingTradesRepository({
-    userUuid: query.userUuid,
-    grade: query.grade,
-    genre: query.genre,
-    keyword: query.keyword,
-  });
+  const [mySalesList, pendingTrades] = await Promise.all([
+    findMySalesRepository({
+      userUuid: query.userUuid,
+      grade: query.grade,
+      genre: query.genre,
+      keyword: query.keyword,
+    }),
+    findMyPendingTradesRepository({
+      userUuid: query.userUuid,
+      grade: query.grade,
+      genre: query.genre,
+      keyword: query.keyword,
+    }),
+  ]);
 
   const mySales = mySalesList.map((sale) => ({
     saleId: sale.id,
@@ -228,7 +229,6 @@ export const getMySalesService = async (query) => {
   }));
 
   const combinedMySales = [...mySales, ...tradePendingCards];
-
   let filteredMySales = combinedMySales;
 
   if (query.saleMethod === 'SALE') {
@@ -297,7 +297,6 @@ export const getMySalesService = async (query) => {
   const totalPages = Math.ceil(totalCount / pageSize);
   const start = (page - 1) * pageSize;
   const pagedMySales = sortedMySales.slice(start, start + pageSize);
-
   return {
     data: {
       gradeCounts,
