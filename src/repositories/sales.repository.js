@@ -132,7 +132,10 @@ export const findSaleForUpdateRepository = async (saleId, tx = prisma) => {
   });
 };
 
+<<<<<<< HEAD
 // 판매글 수정
+=======
+>>>>>>> b421375f2cb7f18272f301b2665f5fe867326d9b
 export const updateSaleRepository = async (saleId, data, tx = prisma) => {
   return tx.sale.update({
     where: {

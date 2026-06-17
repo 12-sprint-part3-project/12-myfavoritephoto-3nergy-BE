@@ -1,4 +1,3 @@
-import { includes } from 'zod';
 import prisma from '../lib/prisma.js';
 
 // 받은 교환 제안 조회
@@ -48,6 +47,14 @@ export const findSaleByIdRepository = async (saleId, tx = prisma) => {
       id: true,
       userUuid: true,
       status: true,
+
+      photocard: {
+        select: {
+          id: true,
+          name: true,
+          grade: true,
+        },
+      },
     },
   });
 };
@@ -100,7 +107,29 @@ export const findTradeByIdRepository = async (tradeId, tx = prisma) => {
       id: tradeId,
     },
     include: {
-      sale: true,
+      proposer: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
+      receiver: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
+      sale: {
+        include: {
+          photocard: {
+            select: {
+              id: true,
+              name: true,
+              grade: true,
+            },
+          },
+        },
+      },
       offeredCard: true,
     },
   });
@@ -204,6 +233,25 @@ export const findPendingTradesBySaleRepository = async (
     },
     select: {
       id: true,
+      proposerUuid: true,
+      offeredCardId: true,
+    },
+  });
+};
+
+// saleId로 PENDING 교환 제안 목록 조회
+export const findPendingTradesBySaleIdRepository = async (
+  saleId,
+  tx = prisma,
+) => {
+  return tx.trade.findMany({
+    where: {
+      saleId,
+      status: 'PENDING',
+    },
+    select: {
+      id: true,
+      proposerUuid: true,
       offeredCardId: true,
     },
   });

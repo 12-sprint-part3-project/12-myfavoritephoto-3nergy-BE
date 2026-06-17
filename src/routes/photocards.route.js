@@ -2,11 +2,17 @@ import express from 'express';
 import {
   createPhotocardController,
   getCardsController,
+  getOwnedPhotocardQuantityController,
 } from '../controllers/photocards.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import { validate, validateQuery } from '../middlewares/validate.middleware.js';
+import {
+  validate,
+  validateParams,
+  validateQuery,
+} from '../middlewares/validate.middleware.js';
 import { getGalleryListQuerySchema } from '../validators/photocardQuery.schema.js';
 import { createPhotocardBodySchema } from '../validators/photocardCreate.schema.js';
+import { photocardIdParamsSchema } from '../validators/photocardParams.schema.js';
 
 const router = express.Router();
 
@@ -158,6 +164,7 @@ router.get(
   validateQuery(getGalleryListQuerySchema),
   getCardsController,
 );
+
 /**
  * @swagger
  * /api/photocards:
@@ -232,6 +239,72 @@ router.post(
   authenticate,
   validate(createPhotocardBodySchema),
   createPhotocardController,
+);
+
+/**
+ * @swagger
+ * /api/photocards/{photocardId}/owned-quantity:
+ *   get:
+ *     summary: 포토카드 보유 수량 조회
+ *     description: 현재 사용자가 보유 중인(OWNED) 특정 포토카드의 수량을 조회합니다.
+ *     tags:
+ *       - Photocards
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: photocardId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 포토카드 ID
+ *         example: 435
+ *     responses:
+ *       200:
+ *         description: 포토카드 보유 수량 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 ownedQuantity: 6
+ *               error: null
+ *       400:
+ *         description: 요청 데이터가 올바르지 않습니다.
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INVALID_INPUT
+ *                 message: 요청 데이터가 올바르지 않습니다.
+ *       401:
+ *         description: 유효하지 않은 액세스 토큰입니다.
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INVALID_ACCESS_TOKEN
+ *                 message: 유효하지 않은 액세스 토큰입니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생했습니다.
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               data: null
+ *               error:
+ *                 code: INTERNAL_SERVER_ERROR
+ *                 message: 서버 내부 오류가 발생했습니다.
+ */
+router.get(
+  '/:photocardId/owned-quantity',
+  authenticate,
+  validateParams(photocardIdParamsSchema),
+  getOwnedPhotocardQuantityController,
 );
 
 export default router;
