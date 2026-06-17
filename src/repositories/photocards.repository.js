@@ -1,6 +1,7 @@
 import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js';
 import prisma from '../lib/prisma.js';
 import {
+  cardListInclude,
   createdPhotocardSelect,
   photocardListItemSelect,
 } from '../selectors/photocards.selector.js';
@@ -19,7 +20,7 @@ export const findCardsListRepository = async ({
 
   const cardsList = await prisma.userPhotocard.findMany({
     where,
-    include: photocardListItemSelect,
+    include: cardListInclude,
   });
 
   return {
