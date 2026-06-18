@@ -35,6 +35,7 @@ import {
   findPendingTradesBySaleIdRepository,
   updateTradesStatusRepository,
 } from '../repositories/trades.repository.js';
+import { cancelPendingTradesBySoldOutService } from '../helpers/soldOut.helper.js';
 
 export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
@@ -772,6 +773,13 @@ export const purchaseSaleService = async (saleId, userUuid, quantity) => {
           {
             saleId: sale.id,
             status: 'SOLD_OUT',
+          },
+          tx,
+        );
+
+        await cancelPendingTradesBySoldOutService(
+          {
+            sale,
           },
           tx,
         );
