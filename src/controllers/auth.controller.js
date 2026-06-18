@@ -85,11 +85,13 @@ export const googleCallbackLogin = async (req, res, next) => {
   try {
     const { code } = req.query;
 
-    const { refreshToken } = await googleCallback(code);
+    const { accessToken, refreshToken, user } = await googleCallback(code);
 
-    res.cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions());
-
-    return res.redirect(process.env.CLIENT_URL);
+    return sendSuccess(res, 200, {
+      accessToken,
+      refreshToken,
+      user,
+    });
   } catch (error) {
     next(error);
   }
