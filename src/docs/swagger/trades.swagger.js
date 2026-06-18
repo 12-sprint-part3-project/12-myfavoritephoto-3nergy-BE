@@ -211,7 +211,6 @@
  *                 code: INTERNAL_SERVER_ERROR
  *                 message: 서버 내부 오류가 발생했습니다.
  */
-router.get('/:saleId', authenticate, getReceivedTradesBySaleController);
 
 /**
  * @swagger
