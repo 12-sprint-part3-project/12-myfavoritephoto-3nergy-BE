@@ -19,10 +19,10 @@
  *               email:
  *                 type: string
  *                 format: email
- *                 example: test@example.com
+ *                 example: user1@test.com
  *               password:
  *                 type: string
- *                 example: Password123!
+ *                 example: Password1234!
  *               nickname:
  *                 type: string
  *                 example: 테스터
@@ -54,10 +54,10 @@
  *             properties:
  *               email:
  *                 type: string
- *                 example: test@example.com
+ *                 example: user1@test.com
  *               password:
  *                 type: string
- *                 example: password1234
+ *                 example: Password1234!
  *     responses:
  *       200:
  *         description: 로그인 성공

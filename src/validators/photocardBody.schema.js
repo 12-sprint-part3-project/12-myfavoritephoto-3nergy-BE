@@ -19,7 +19,7 @@ const requiredString = (message) =>
   z.preprocess((value) => value ?? '', z.string().trim().min(1, { message }));
 
 const saleBodyFields = {
-  price: z.coerce.number().int().min(0, '판매 가격은 0 이상이어야 합니다.'),
+  price: z.coerce.number().int().min(1, '판매 가격은 1 이상이어야 합니다.'),
 
   quantity: z.coerce.number().int().min(1, '판매 수량은 1 이상이어야 합니다.'),
 
@@ -65,7 +65,7 @@ export const purchaseSaleBodySchema = z.object({
 
 export const createPhotocardBodySchema = z.object({
   name: requiredString('포토카드 이름은 필수입니다.').pipe(
-    z.string().max(100, { message: '포토카드 이름은 100자 이하여야 합니다.' }),
+    z.string().max(20, { message: '포토카드 이름은 20자 이하여야 합니다.' }),
   ),
 
   grade: z.enum(gradeValues, {
@@ -79,7 +79,8 @@ export const createPhotocardBodySchema = z.object({
   price: z.coerce
     .number()
     .int('가격은 정수여야 합니다.')
-    .min(0, '가격은 0 이상이어야 합니다.'),
+    .min(1, '가격은 1 이상이어야 합니다.')
+    .max(2100000000, '가격은 21억 이하여야 합니다.'),
 
   totalQuantity: z.coerce
     .number()
