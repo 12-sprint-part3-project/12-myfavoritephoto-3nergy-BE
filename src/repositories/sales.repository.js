@@ -299,3 +299,20 @@ export const updateSaleStatusRepository = async (
     select: saleStatusSelect,
   });
 };
+
+// 이미 판매 중인 포토카드 조회
+export const findActiveSaleByPhotocardRepository = async (
+  { userUuid, photocardId },
+  tx = prisma,
+) => {
+  return tx.sale.findFirst({
+    where: {
+      userUuid,
+      photocardId,
+      status: 'SALE',
+    },
+    select: {
+      id: true,
+    },
+  });
+};
