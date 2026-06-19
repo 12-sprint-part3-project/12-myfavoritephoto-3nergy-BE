@@ -113,6 +113,12 @@ export const ERROR_CODES = {
     message: '판매 수량이 보유 수량을 초과했습니다.',
   },
 
+  DUPLICATE_SALE_PHOTOCARD: {
+    statusCode: 409,
+    message:
+      '이미 판매 중인 포토카드입니다. 기존 판매글에서 수량을 수정해주세요.',
+  },
+
   SALE_NOT_EDITABLE: {
     statusCode: 409,
     code: 'SALE_NOT_EDITABLE',

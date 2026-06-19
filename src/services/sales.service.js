@@ -17,6 +17,7 @@ import {
   transferUserPhotocardsRepository,
   createSaleLogRepository,
   updateSaleStatusRepository,
+  findActiveSaleByPhotocardRepository,
 } from '../repositories/sales.repository.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
@@ -115,6 +116,18 @@ export const getSalesListService = async (query) => {
 
 export const createSaleService = async (data) => {
   const sale = await prisma.$transaction(async (tx) => {
+    const existingSale = await findActiveSaleByPhotocardRepository(
+      {
+        userUuid: data.userUuid,
+        photocardId: data.photocardId,
+      },
+      tx,
+    );
+
+    if (existingSale) {
+      throw AppError(ERROR_CODES.DUPLICATE_SALE_PHOTOCARD);
+    }
+
     const ownedPhotocards = await findOwnedPhotocardsRepository(
       {
         userUuid: data.userUuid,
