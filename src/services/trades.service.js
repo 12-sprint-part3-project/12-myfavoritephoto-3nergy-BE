@@ -23,6 +23,7 @@ import {
 import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';
 import { createNotificationService } from './notification.service.js';
 import { findUserNicknameByUuid } from '../repositories/user.repository.js';
+import { cancelPendingTradesBySoldOutService } from '../helpers/soldOut.helper.js';
 
 // 특정 판매글의 교환 제안 목록을 조회
 export const getReceivedTradesBySaleService = async ({ saleId, userUuid }) => {
@@ -308,7 +309,6 @@ export const acceptTradeService = async ({ tradeId, userUuid }) => {
 
       const nextRemainingQuantity = sale.remainingQuantity - 1;
 
-      // 품절 처리 및 대기 중인 교환 제안 취소
       if (nextRemainingQuantity === 0) {
         await updateSaleStatusRepository(
           {
@@ -318,54 +318,13 @@ export const acceptTradeService = async ({ tradeId, userUuid }) => {
           tx,
         );
 
-        const pendingTrades = await findPendingTradesBySaleRepository(
+        await cancelPendingTradesBySoldOutService(
           {
-            saleId: sale.id,
-            tradeId,
+            sale,
+            excludeTradeId: tradeId,
           },
           tx,
         );
-
-        const pendingTradeIds = pendingTrades.map((trade) => trade.id);
-        const pendingOfferedCardIds = pendingTrades.map(
-          (trade) => trade.offeredCardId,
-        );
-
-        if (pendingTradeIds.length > 0) {
-          await updateTradesStatusRepository(
-            {
-              tradeIds: pendingTradeIds,
-              status: 'CANCELED',
-            },
-            tx,
-          );
-
-          await updateUserPhotocardsStatusRepository(
-            {
-              userPhotocardIds: pendingOfferedCardIds,
-              status: 'OWNED',
-            },
-            tx,
-          );
-
-          for (const pendingTrade of pendingTrades) {
-            await createNotificationService(
-              {
-                userUuid: pendingTrade.proposerUuid,
-                ...NOTIFICATION_PRESET.TRADE_CANCELED_BY_SOLD_OUT,
-                targetId: sale.id,
-                metadata: {
-                  photocard: {
-                    id: sale.photocard.id,
-                    name: sale.photocard.name,
-                    grade: sale.photocard.grade,
-                  },
-                },
-              },
-              tx,
-            );
-          }
-        }
       }
 
       // 교환 상태 변경

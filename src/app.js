@@ -17,9 +17,11 @@ import { AppError } from './errors/AppError.js';
 
 const app = express();
 
-const allowedOrigins = ['http://localhost:3000', process.env.CLIENT_URL].filter(
-  Boolean,
-);
+const allowedOrigins = [
+  'http://localhost:8080',
+  'http://localhost:3000',
+  process.env.CLIENT_URL,
+].filter(Boolean);
 
 app.use(
   cors({
