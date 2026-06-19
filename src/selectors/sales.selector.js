@@ -134,11 +134,16 @@ export const ownedPhotocardSelect = {
  * 교환 제안 조회
  *********************************/
 
+export const myPendingTradePhotocardSelect = {
+  ...photocardSummarySelect,
+  price: true,
+};
+
 export const myPendingTradeInclude = {
   offeredCard: {
     include: {
       photocard: {
-        select: photocardSummarySelect,
+        select: myPendingTradePhotocardSelect,
       },
       owner: {
         select: sellerNicknameSelect,
