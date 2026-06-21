@@ -42,24 +42,22 @@ export const findSalesListRepository = async ({
     photocard: buildPhotocardFilter({ grade, genre, keyword }),
   };
 
-  const [salesList, totalCount, countBaseSales] = await prisma.$transaction([
-    prisma.sale.findMany({
-      where,
-      orderBy: buildSaleOrderBy(sort),
-      skip,
-      take,
-      include: saleListInclude,
-    }),
+  const salesList = await prisma.sale.findMany({
+    where,
+    orderBy: buildSaleOrderBy(sort),
+    skip,
+    take,
+    include: saleListInclude,
+  });
 
-    prisma.sale.count({
-      where,
-    }),
+  const totalCount = await prisma.sale.count({
+    where,
+  });
 
-    prisma.sale.findMany({
-      where,
-      select: saleCountsSelect,
-    }),
-  ]);
+  const countBaseSales = await prisma.sale.findMany({
+    where,
+    select: saleCountsSelect,
+  });
 
   return { salesList, totalCount, countBaseSales };
 };
