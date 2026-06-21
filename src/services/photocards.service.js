@@ -8,7 +8,8 @@ import {
 } from '../repositories/photocards.repository.js';
 import { getStartOfMonthKST } from '../helpers/date.helper.js';
 import {
-  buildFilterCounts,
+  buildGenreCounts,
+  buildGradeCounts,
   GENRE_VALUES,
   GRADE_VALUES,
 } from '../helpers/buildFilterCounts.helper.js';
@@ -58,21 +59,9 @@ export const getCardsListService = async (query) => {
 
   const photocards = Array.from(cardMap.values());
 
-  const gradeCounts = buildFilterCounts({
-    items: photocards,
-    field: 'grade',
-    values: GRADE_VALUES,
-    responseKey: 'grade',
-    countField: 'quantity',
-  });
+  const gradeCounts = buildGradeCounts(photocards);
 
-  const genreCounts = buildFilterCounts({
-    items: photocards,
-    field: 'genre',
-    values: GENRE_VALUES,
-    responseKey: 'genre',
-    countField: 'quantity',
-  });
+  const genreCounts = buildGenreCounts(photocards);
 
   const sortMap = {
     latest: (a, b) => new Date(b.acquiredAt) - new Date(a.acquiredAt),

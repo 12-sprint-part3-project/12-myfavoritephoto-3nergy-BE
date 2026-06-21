@@ -23,7 +23,11 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
 import prisma from '../lib/prisma.js';
 import {
-  buildFilterCounts,
+  buildGenreCounts,
+  buildGradeCounts,
+  buildMySaleStatusCounts,
+  buildSaleMethodCounts,
+  buildSaleStatusCounts,
   GENRE_VALUES,
   GRADE_VALUES,
   SALE_METHOD_VALUES,
@@ -74,26 +78,11 @@ export const getSalesListService = async (query) => {
     status: sale.status,
   }));
 
-  const gradeCounts = buildFilterCounts({
-    items: countItems,
-    field: 'grade',
-    values: GRADE_VALUES,
-    responseKey: 'grade',
-  });
+  const gradeCounts = buildGradeCounts(countItems);
 
-  const genreCounts = buildFilterCounts({
-    items: countItems,
-    field: 'genre',
-    values: GENRE_VALUES,
-    responseKey: 'genre',
-  });
+  const genreCounts = buildGenreCounts(countItems);
 
-  const saleStatusCounts = buildFilterCounts({
-    items: countItems,
-    field: 'status',
-    values: SALE_STATUS_VALUES,
-    responseKey: 'status',
-  });
+  const saleStatusCounts = buildSaleStatusCounts(countItems);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -279,33 +268,13 @@ export const getMySalesService = async (query) => {
   const sortFunction = sortMap[query.sort] || sortMap.latest;
   const sortedMySales = [...filteredMySales].sort(sortFunction);
 
-  const gradeCounts = buildFilterCounts({
-    items: filteredMySales,
-    field: 'grade',
-    values: GRADE_VALUES,
-    responseKey: 'grade',
-  });
+  const gradeCounts = buildGradeCounts(filteredMySales);
 
-  const genreCounts = buildFilterCounts({
-    items: filteredMySales,
-    field: 'genre',
-    values: GENRE_VALUES,
-    responseKey: 'genre',
-  });
+  const genreCounts = buildGenreCounts(filteredMySales);
 
-  const saleStatusCounts = buildFilterCounts({
-    items: filteredMySales,
-    field: 'countStatus',
-    values: SALE_STATUS_VALUES,
-    responseKey: 'status',
-  });
+  const saleStatusCounts = buildMySaleStatusCounts(filteredMySales);
 
-  const saleMethodCounts = buildFilterCounts({
-    items: filteredMySales,
-    field: 'saleMethod',
-    values: SALE_METHOD_VALUES,
-    responseKey: 'saleMethod',
-  });
+  const saleMethodCounts = buildSaleMethodCounts(filteredMySales);
 
   const totalCount = sortedMySales.length;
   const totalPages = Math.ceil(totalCount / pageSize);
