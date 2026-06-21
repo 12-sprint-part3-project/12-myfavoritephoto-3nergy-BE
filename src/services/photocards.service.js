@@ -24,6 +24,7 @@ export const getCardsListService = async (query) => {
     grade: query.grade,
     genre: query.genre,
     keyword: query.keyword,
+    excludeOnSale: query.excludeOnSale,
   });
 
   const cardMap = new Map();

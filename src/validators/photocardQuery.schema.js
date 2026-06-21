@@ -56,6 +56,11 @@ export const getSalesListQuerySchema = z.object({
 
 export const getGalleryListQuerySchema = z.object({
   ...photocardQueryFields,
+
+  excludeOnSale: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((value) => value === 'true'),
 });
 
 export const getMySalesQuerySchema = z.object({
