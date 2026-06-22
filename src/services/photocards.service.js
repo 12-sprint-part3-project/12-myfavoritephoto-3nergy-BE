@@ -1,0 +1,165 @@
+import prisma from '../lib/prisma.js';
+import { ERROR_CODES } from '../constants/errorCodes.js';
+import { AppError } from '../errors/AppError.js';
+import {
+  countMonthlyCreatedPhotocards,
+  countOwnedPhotocardRepository,
+  createPhotocardRepository,
+  createUserPhotocardsRepository,
+  findCardsListRepository,
+} from '../repositories/photocards.repository.js';
+import { getStartOfMonthKST } from '../helpers/date.helper.js';
+import {
+  buildGenreCounts,
+  buildGradeCounts,
+} from '../helpers/buildFilterCounts.helper.js';
+import { MONTHLY_PHOTOCARD_CREATION_LIMIT } from '../constants/photocard.constants.js';
+
+export const getCardsListService = async (query) => {
+  const page = Number(query.page) || 1;
+  const pageSize = Number(query.pageSize) || 20;
+
+  const { cardsList } = await findCardsListRepository({
+    userUuid: query.userUuid,
+    grade: query.grade,
+    genre: query.genre,
+    keyword: query.keyword,
+    excludeOnSale: query.excludeOnSale,
+  });
+
+  const cardMap = new Map();
+
+  cardsList.forEach((card) => {
+    const photocard = card.photocard;
+
+    if (!cardMap.has(photocard.id)) {
+      cardMap.set(photocard.id, {
+        id: photocard.id,
+        userPhotocardIds: [],
+        name: photocard.name,
+        imageUrl: photocard.imageUrl,
+        grade: photocard.grade,
+        genre: photocard.genre,
+        price: photocard.price,
+        description: photocard.description,
+        quantity: 0,
+        ownerNickname: card.owner.nickname,
+        acquiredAt: card.acquiredAt,
+      });
+    }
+
+    const mappedCard = cardMap.get(photocard.id);
+
+    mappedCard.quantity += 1;
+    mappedCard.userPhotocardIds.push(card.id);
+
+    if (new Date(card.acquiredAt) > new Date(mappedCard.acquiredAt)) {
+      mappedCard.acquiredAt = card.acquiredAt;
+    }
+  });
+
+  const photocards = Array.from(cardMap.values());
+
+  const gradeCounts = buildGradeCounts(photocards);
+
+  const genreCounts = buildGenreCounts(photocards);
+
+  const sortMap = {
+    latest: (a, b) => new Date(b.acquiredAt) - new Date(a.acquiredAt),
+    oldest: (a, b) => new Date(a.acquiredAt) - new Date(b.acquiredAt),
+    price_asc: (a, b) => a.price - b.price,
+    price_desc: (a, b) => b.price - a.price,
+  };
+
+  const sortFunction = sortMap[query.sort] || sortMap.latest;
+  const sortedPhotocards = [...photocards].sort(sortFunction);
+
+  const totalCount = sortedPhotocards.length;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const start = (page - 1) * pageSize;
+  const pagedPhotocards = sortedPhotocards.slice(start, start + pageSize);
+
+  return {
+    data: {
+      gradeCounts,
+      genreCounts,
+      photocards: pagedPhotocards,
+    },
+    meta: {
+      page,
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage: page < totalPages,
+    },
+  };
+};
+
+// 포토카드 생성
+export const createPhotocard = async (userUuid, body) => {
+  const startOfMonth = getStartOfMonthKST();
+
+  const createdCount = await countMonthlyCreatedPhotocards({
+    userUuid,
+    startOfMonth,
+  });
+
+  if (createdCount >= MONTHLY_PHOTOCARD_CREATION_LIMIT) {
+    throw AppError(ERROR_CODES.PHOTOCARD_CREATION_LIMIT_EXCEEDED);
+  }
+
+  const { photocard, issuedQuantity } = await prisma.$transaction(
+    async (tx) => {
+      const photocard = await createPhotocardRepository(
+        {
+          userUuid,
+          ...body,
+        },
+        tx,
+      );
+
+      const userPhotocardsData = Array.from(
+        {
+          length: body.totalQuantity,
+        },
+        (_, index) => ({
+          photocardId: photocard.id,
+          ownerUuid: userUuid,
+          serialNumber: index + 1,
+          status: 'OWNED',
+          acquiredAt: new Date(),
+        }),
+      );
+
+      const issuedCards = await createUserPhotocardsRepository(
+        userPhotocardsData,
+        tx,
+      );
+
+      return {
+        photocard,
+        issuedQuantity: issuedCards.count,
+      };
+    },
+  );
+
+  return {
+    photocard,
+    issuedQuantity,
+  };
+};
+
+// OWNED 상태 포토카드 수량 조회
+export const getOwnedPhotocardQuantityService = async ({
+  userUuid,
+  photocardId,
+}) => {
+  const ownedQuantity = await countOwnedPhotocardRepository({
+    userUuid,
+    photocardId,
+  });
+
+  return {
+    ownedQuantity,
+  };
+};

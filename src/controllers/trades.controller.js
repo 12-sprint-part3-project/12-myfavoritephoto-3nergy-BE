@@ -1,0 +1,108 @@
+import {
+  getReceivedTradesBySaleService,
+  createTradeService,
+  getMyTradesBySaleService,
+  cancelTradeService,
+  acceptTradeService,
+  rejectTradeService,
+} from '../services/trades.service.js';
+import { sendSuccess } from '../helpers/response.helper.js';
+
+// 해당 판매글에 들어온 교환 제안 목록 조회
+export const getReceivedTradesBySaleController = async (req, res, next) => {
+  try {
+    const trades = await getReceivedTradesBySaleService({
+      saleId: Number(req.params.saleId),
+      userUuid: req.user.userUuid,
+    });
+
+    return sendSuccess(res, 200, {
+      trades,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 특정 판매글에 대한 교환 제안을 생성
+export const createTradeController = async (req, res, next) => {
+  try {
+    const trade = await createTradeService({
+      saleId: Number(req.params.saleId),
+      userUuid: req.user.userUuid,
+      offeredCardId: req.body.offeredCardId,
+      description: req.body.description,
+    });
+
+    return sendSuccess(res, 201, trade);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 교환 제안 취소
+export const cancelTradeController = async (req, res, next) => {
+  try {
+    const { tradeId } = req.params;
+    const { userUuid } = req.user;
+
+    const result = await cancelTradeService({
+      tradeId: Number(tradeId),
+      userUuid,
+    });
+
+    return sendSuccess(res, 200, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 특정 판매글에 내가 제시한 교환 목록 조회
+export const getMyTradesBySaleController = async (req, res, next) => {
+  try {
+    const trades = await getMyTradesBySaleService({
+      saleId: Number(req.params.saleId),
+      userUuid: req.user.userUuid,
+    });
+
+    return sendSuccess(res, 200, {
+      trades,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 교환 제안 수락
+export const acceptTradeController = async (req, res, next) => {
+  try {
+    const tradeId = Number(req.params.tradeId);
+    const { userUuid } = req.user;
+
+    const result = await acceptTradeService({
+      tradeId: Number(tradeId),
+      userUuid,
+    });
+
+    return sendSuccess(res, 200, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 교환 제안 거절
+export const rejectTradeController = async (req, res, next) => {
+  try {
+    const { tradeId } = req.params;
+    const { userUuid } = req.user;
+
+    const result = await rejectTradeService({
+      tradeId: Number(tradeId),
+      userUuid,
+    });
+
+    return sendSuccess(res, 200, result);
+  } catch (error) {
+    next(error);
+  }
+};

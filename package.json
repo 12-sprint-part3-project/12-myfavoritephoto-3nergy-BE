@@ -2,14 +2,18 @@
   "name": "12-myfavoritephoto-3nergy-be",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js",
-    "start": "node index.js",
+    "dev": "nodemon src/server.js",
+    "dev:local": "dotenv -e .env.local -- nodemon src/server.js",
+    "dev:performance": "dotenv -e .env.performance -- nodemon src/server.js",
+    "start": "node src/server.js",
     "lint": "eslint .",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "studio:performance": "dotenv -e .env.performance -- prisma studio",
+    "seed:performance": "dotenv -e .env.performance -- node prisma/seed.large.js"
   },
   "repository": {
     "type": "git",
@@ -25,12 +29,15 @@
   "homepage": "https://github.com/12-sprint-part3-project/12-myfavoritephoto-3nergy-BE#readme",
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "ajv": "^8.20.0",
+    "axios": "^1.17.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.2.1",
     "prisma": "^6.19.3",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
@@ -38,6 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^10.4.1",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
