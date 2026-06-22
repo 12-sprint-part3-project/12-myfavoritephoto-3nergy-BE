@@ -18,21 +18,36 @@ export const findUserByNickname = async (nickname) => {
   });
 };
 
-// 사용자 생성 + 포인트 테이블 생성
-export const createUserWithPoint = async (userData) => {
-  return prisma.$transaction(async (tx) => {
-    const user = await tx.user.create({
-      data: userData,
-    });
+// 사용자 생성
+export const createUserRepository = async (userData, tx = prisma) => {
+  return tx.user.create({
+    data: userData,
+  });
+};
 
-    await tx.userPoint.create({
-      data: {
-        userUuid: user.uuid,
-        balance: 0,
-      },
-    });
+// 유저 포인트 생성
+export const createUserPointRepository = async (
+  { userUuid, balance = 0 },
+  tx = prisma,
+) => {
+  return tx.userPoint.create({
+    data: {
+      userUuid,
+      balance,
+    },
+  });
+};
 
-    return user;
+// 이벤트 참여 상태 생성
+export const createRewardStateRepository = async (
+  { userUuid, lastDrawAt },
+  tx = prisma,
+) => {
+  return tx.rewardState.create({
+    data: {
+      userUuid,
+      lastDrawAt,
+    },
   });
 };
 

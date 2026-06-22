@@ -1,7 +1,10 @@
 import bcrypt from 'bcrypt';
+import prisma from '../lib/prisma.js';
 import jwt from 'jsonwebtoken';
 import {
-  createUserWithPoint,
+  createUserRepository,
+  createUserPointRepository,
+  createRewardStateRepository,
   findUserByNickname,
   findUserByEmail,
   createRefreshToken,
@@ -32,11 +35,34 @@ export const signupUser = async ({ email, password, nickname }) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const user = await createUserWithPoint({
-    email,
-    nickname,
-    passwordHash,
-    provider: 'LOCAL',
+  const user = await prisma.$transaction(async (tx) => {
+    const createdUser = await createUserRepository(
+      {
+        email,
+        nickname,
+        passwordHash,
+        provider: 'LOCAL',
+      },
+      tx,
+    );
+
+    await createUserPointRepository(
+      {
+        userUuid: createdUser.uuid,
+        balance: 5000,
+      },
+      tx,
+    );
+
+    await createRewardStateRepository(
+      {
+        userUuid: createdUser.uuid,
+        lastDrawAt: new Date(),
+      },
+      tx,
+    );
+
+    return createdUser;
   });
 
   return {
@@ -231,7 +257,7 @@ export const googleCallback = async (code) => {
   // 3. Google ID로 기존 회원 조회
   let user = await findUserByGoogleId(googleUser.sub);
 
-  // 4. 기존 회원이 없으면 자동 회원가입 + 포인트 테이블
+  // 4. 기존 회원이 없으면 자동 회원가입 + 기본 포인트 + RewardState 생성
   if (!user) {
     const existingEmailUser = await findUserByEmail(googleUser.email);
 
@@ -239,11 +265,34 @@ export const googleCallback = async (code) => {
       throw AppError(ERROR_CODES.EMAIL_ALREADY_EXISTS);
     }
 
-    user = await createUserWithPoint({
-      email: googleUser.email,
-      nickname: `${googleUser.name}_${googleUser.sub.slice(-6)}`,
-      provider: 'GOOGLE',
-      providerId: googleUser.sub,
+    user = await prisma.$transaction(async (tx) => {
+      const createdUser = await createUserRepository(
+        {
+          email: googleUser.email,
+          nickname: `${googleUser.name}_${googleUser.sub.slice(-6)}`,
+          provider: 'GOOGLE',
+          providerId: googleUser.sub,
+        },
+        tx,
+      );
+
+      await createUserPointRepository(
+        {
+          userUuid: createdUser.uuid,
+          balance: 5000,
+        },
+        tx,
+      );
+
+      await createRewardStateRepository(
+        {
+          userUuid: createdUser.uuid,
+          lastDrawAt: new Date(),
+        },
+        tx,
+      );
+
+      return createdUser;
     });
   }
 
