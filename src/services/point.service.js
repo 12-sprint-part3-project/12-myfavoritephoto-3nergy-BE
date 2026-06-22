@@ -10,8 +10,7 @@ import {
 } from '../repositories/point.repository.js';
 
 const EVENT_COOLDOWN_MS = 60 * 60 * 1000; // 1시간
-const MIN_EVENT_POINT = 10;
-const MAX_EVENT_POINT = 50;
+const EVENT_POINT_OPTIONS = [100, 200, 300, 400, 500];
 
 export const getMyPoint = async (userUuid) => {
   const userPoint = await findMyPointByUserUuid(userUuid);
@@ -27,11 +26,11 @@ export const getMyPoint = async (userUuid) => {
 };
 
 // 이벤트 지급 포인트를 랜덤으로 결정한다.
+// 이벤트 지급 포인트를 랜덤으로 결정한다.
 const getRandomEventPoint = () => {
-  return (
-    Math.floor(Math.random() * (MAX_EVENT_POINT - MIN_EVENT_POINT + 1)) +
-    MIN_EVENT_POINT
-  );
+  const randomIndex = Math.floor(Math.random() * EVENT_POINT_OPTIONS.length);
+
+  return EVENT_POINT_OPTIONS[randomIndex];
 };
 
 // 마지막 참여 시간 기준으로 다음 참여 가능 시간을 계산한다.
@@ -80,7 +79,14 @@ const getEventRewardStatus = (rewardState, now) => {
 export const getEventPointStatus = async (userUuid) => {
   const now = new Date();
 
-  const rewardState = await findRewardStateByUserUuid(userUuid);
+  let rewardState = await findRewardStateByUserUuid(userUuid);
+
+  if (!rewardState) {
+    rewardState = await upsertRewardState({
+      userUuid,
+      now,
+    });
+  }
 
   return getEventRewardStatus(rewardState, now);
 };
