@@ -1,33 +1,10 @@
-import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js';
 import prisma from '../lib/prisma.js';
 import {
   cardListInclude,
   createdPhotocardSelect,
 } from '../selectors/photocards.selector.js';
 
-export const findCardsListRepository = async ({
-  userUuid,
-  grade,
-  genre,
-  keyword,
-  excludeOnSale = false,
-}) => {
-  const where = {
-    ownerUuid: userUuid,
-    status: 'OWNED',
-    photocard: {
-      ...buildPhotocardFilter({ grade, genre, keyword }),
-      ...(excludeOnSale && {
-        sales: {
-          none: {
-            userUuid,
-            status: 'SALE',
-          },
-        },
-      }),
-    },
-  };
-
+export const findCardsListRepository = async ({ where }) => {
   const cardsList = await prisma.userPhotocard.findMany({
     where,
     include: cardListInclude,

@@ -14,17 +14,34 @@ import {
   buildGradeCounts,
 } from '../helpers/buildFilterCounts.helper.js';
 import { MONTHLY_PHOTOCARD_CREATION_LIMIT } from '../constants/photocard.constants.js';
+import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js';
 
 export const getCardsListService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
+  const where = {
+    ownerUuid: query.userUuid,
+    status: 'OWNED',
+    photocard: {
+      ...buildPhotocardFilter({
+        grade: query.grade,
+        genre: query.genre,
+        keyword: query.keyword,
+      }),
+      ...(query.excludeOnSale && {
+        sales: {
+          none: {
+            userUuid: query.userUuid,
+            status: 'SALE',
+          },
+        },
+      }),
+    },
+  };
+
   const { cardsList } = await findCardsListRepository({
-    userUuid: query.userUuid,
-    grade: query.grade,
-    genre: query.genre,
-    keyword: query.keyword,
-    excludeOnSale: query.excludeOnSale,
+    where,
   });
 
   const cardMap = new Map();
