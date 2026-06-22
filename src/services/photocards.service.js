@@ -1,17 +1,17 @@
+import prisma from '../lib/prisma.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
 import { AppError } from '../errors/AppError.js';
 import {
   countMonthlyCreatedPhotocards,
   countOwnedPhotocardRepository,
-  createPhotocardWithUserCards,
+  createPhotocardRepository,
+  createUserPhotocardsRepository,
   findCardsListRepository,
 } from '../repositories/photocards.repository.js';
 import { getStartOfMonthKST } from '../helpers/date.helper.js';
 import {
   buildGenreCounts,
   buildGradeCounts,
-  GENRE_VALUES,
-  GRADE_VALUES,
 } from '../helpers/buildFilterCounts.helper.js';
 import { MONTHLY_PHOTOCARD_CREATION_LIMIT } from '../constants/photocard.constants.js';
 
@@ -97,9 +97,6 @@ export const getCardsListService = async (query) => {
 
 // 포토카드 생성
 export const createPhotocard = async (userUuid, body) => {
-  const now = new Date();
-
-  //  매월 1일
   const startOfMonth = getStartOfMonthKST();
 
   const createdCount = await countMonthlyCreatedPhotocards({
@@ -111,10 +108,45 @@ export const createPhotocard = async (userUuid, body) => {
     throw AppError(ERROR_CODES.PHOTOCARD_CREATION_LIMIT_EXCEEDED);
   }
 
-  return createPhotocardWithUserCards({
-    userUuid,
-    ...body,
-  });
+  const { photocard, issuedQuantity } = await prisma.$transaction(
+    async (tx) => {
+      const photocard = await createPhotocardRepository(
+        {
+          userUuid,
+          ...body,
+        },
+        tx,
+      );
+
+      const userPhotocardsData = Array.from(
+        {
+          length: body.totalQuantity,
+        },
+        (_, index) => ({
+          photocardId: photocard.id,
+          ownerUuid: userUuid,
+          serialNumber: index + 1,
+          status: 'OWNED',
+          acquiredAt: new Date(),
+        }),
+      );
+
+      const issuedCards = await createUserPhotocardsRepository(
+        userPhotocardsData,
+        tx,
+      );
+
+      return {
+        photocard,
+        issuedQuantity: issuedCards.count,
+      };
+    },
+  );
+
+  return {
+    photocard,
+    issuedQuantity,
+  };
 };
 
 // OWNED 상태 포토카드 수량 조회
