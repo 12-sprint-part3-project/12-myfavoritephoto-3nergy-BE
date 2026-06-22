@@ -9,7 +9,11 @@ import {
   purchaseSaleController,
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import { validate, validateQuery } from '../middlewares/validate.middleware.js';
+import {
+  validate,
+  validateParams,
+  validateQuery,
+} from '../middlewares/validate.middleware.js';
 import {
   getSalesListQuerySchema,
   getMySalesQuerySchema,
@@ -19,15 +23,11 @@ import {
   updateSaleBodySchema,
   purchaseSaleBodySchema,
 } from '../validators/photocardBody.schema.js';
+import { saleIdParamsSchema } from '../validators/photocardParams.schema.js';
 
 const router = express.Router();
 
-router.get(
-  '/',
-  authenticate,
-  validateQuery(getSalesListQuerySchema),
-  getSalesController,
-);
+router.get('/', validateQuery(getSalesListQuerySchema), getSalesController);
 
 router.post(
   '/',
@@ -43,7 +43,11 @@ router.get(
   getMySalesController,
 );
 
-router.get('/:saleId', authenticate, getSaleDetailController);
+router.get(
+  '/:saleId',
+  validateParams(saleIdParamsSchema),
+  getSaleDetailController,
+);
 
 router.patch(
   '/:saleId',

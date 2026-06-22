@@ -6,8 +6,6 @@
  *     description: 마켓플레이스에 등록된 판매 포토카드 목록을 조회합니다.
  *     tags:
  *       - Marketplace
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: keyword
@@ -587,8 +585,6 @@
  *     description: saleId를 기반으로 판매 상세 정보를 조회합니다.
  *     tags:
  *       - Sales
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: saleId
