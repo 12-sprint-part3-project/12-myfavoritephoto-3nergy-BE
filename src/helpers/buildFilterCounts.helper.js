@@ -17,25 +17,37 @@ export const SALE_STATUS_VALUES = ['SALE', 'SOLD_OUT'];
 
 export const SALE_METHOD_VALUES = ['SALE', 'TRADE'];
 
-export const buildFilterCounts = ({
-  items,
-  field,
-  values,
-  responseKey,
-  countField,
-}) => {
-  const counts = Object.fromEntries(values.map((value) => [value, 0]));
+export const buildGradeCounts = (items) => {
+  return GRADE_VALUES.map((grade) => ({
+    grade,
+    count: items.filter((item) => item.grade === grade).length,
+  }));
+};
 
-  items.forEach((item) => {
-    const key = item[field];
+export const buildGenreCounts = (items) => {
+  return GENRE_VALUES.map((genre) => ({
+    genre,
+    count: items.filter((item) => item.genre === genre).length,
+  }));
+};
 
-    if (!(key in counts)) return;
+export const buildSaleStatusCounts = (items) => {
+  return SALE_STATUS_VALUES.map((status) => ({
+    status,
+    count: items.filter((item) => item.status === status).length,
+  }));
+};
 
-    counts[key] += countField ? item[countField] : 1;
-  });
+export const buildMySaleStatusCounts = (items) => {
+  return SALE_STATUS_VALUES.map((status) => ({
+    status,
+    count: items.filter((item) => item.countStatus === status).length,
+  }));
+};
 
-  return Object.entries(counts).map(([key, count]) => ({
-    [responseKey]: key,
-    count,
+export const buildSaleMethodCounts = (items) => {
+  return SALE_METHOD_VALUES.map((method) => ({
+    method,
+    count: items.filter((item) => item.saleMethod === method).length,
   }));
 };

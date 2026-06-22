@@ -11,11 +11,22 @@ export const findCardsListRepository = async ({
   grade,
   genre,
   keyword,
+  excludeOnSale = false,
 }) => {
   const where = {
     ownerUuid: userUuid,
     status: 'OWNED',
-    photocard: buildPhotocardFilter({ grade, genre, keyword }),
+    photocard: {
+      ...buildPhotocardFilter({ grade, genre, keyword }),
+      ...(excludeOnSale && {
+        sales: {
+          none: {
+            userUuid,
+            status: 'SALE',
+          },
+        },
+      }),
+    },
   };
 
   const cardsList = await prisma.userPhotocard.findMany({
