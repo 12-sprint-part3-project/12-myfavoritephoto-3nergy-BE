@@ -37,8 +37,10 @@ export const signupSchema = z.object({
 
   password: z
     .string()
+    .regex(/^\S+$/, '비밀번호에는 공백을 포함할 수 없습니다.')
     .min(8, '비밀번호는 8자 이상이어야 합니다.')
     .regex(/[A-Z]/, '비밀번호는 대문자를 1개 이상 포함해야 합니다.')
+    .regex(/[0-9]/, '비밀번호는 숫자를 1개 이상 포함해야 합니다.')
     .regex(/[^A-Za-z0-9]/, '비밀번호는 특수문자를 1개 이상 포함해야 합니다.'),
 
   nickname: z
