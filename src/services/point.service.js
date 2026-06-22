@@ -50,6 +50,41 @@ const validateEventAvailability = (rewardState, now) => {
   }
 };
 
+// 이벤트 참여 상태를 계산한다.
+const getEventRewardStatus = (rewardState, now) => {
+  if (!rewardState) {
+    return {
+      canDraw: true,
+      serverTime: now,
+      nextAvailableAt: now,
+      remainingMilliseconds: 0,
+    };
+  }
+
+  const nextAvailableAt = getNextAvailableAt(rewardState.lastDrawAt);
+
+  const remainingMilliseconds = Math.max(
+    nextAvailableAt.getTime() - now.getTime(),
+    0,
+  );
+
+  return {
+    canDraw: remainingMilliseconds === 0,
+    serverTime: now,
+    nextAvailableAt: remainingMilliseconds === 0 ? now : nextAvailableAt,
+    remainingMilliseconds,
+  };
+};
+
+// 이벤트 포인트 참여 상태 조회
+export const getEventPointStatus = async (userUuid) => {
+  const now = new Date();
+
+  const rewardState = await findRewardStateByUserUuid(userUuid);
+
+  return getEventRewardStatus(rewardState, now);
+};
+
 // 이벤트 포인트 지급 전체 흐름을 처리한다.
 export const rewardEventPointUser = async (userUuid) => {
   const now = new Date();
@@ -96,6 +131,9 @@ export const rewardEventPointUser = async (userUuid) => {
   return {
     point,
     balance,
+    canDraw: false,
+    serverTime: now,
     nextAvailableAt,
+    remainingMilliseconds: EVENT_COOLDOWN_MS,
   };
 };
