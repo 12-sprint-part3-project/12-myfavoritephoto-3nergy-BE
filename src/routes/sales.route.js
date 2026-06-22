@@ -19,15 +19,11 @@ import {
   updateSaleBodySchema,
   purchaseSaleBodySchema,
 } from '../validators/photocardBody.schema.js';
+import { saleIdParamsSchema } from '../validators/photocardParams.schema.js';
 
 const router = express.Router();
 
-router.get(
-  '/',
-  authenticate,
-  validateQuery(getSalesListQuerySchema),
-  getSalesController,
-);
+router.get('/', validateQuery(getSalesListQuerySchema), getSalesController);
 
 router.post(
   '/',
@@ -43,7 +39,7 @@ router.get(
   getMySalesController,
 );
 
-router.get('/:saleId', authenticate, getSaleDetailController);
+router.get('/:saleId', validate(saleIdParamsSchema), getSaleDetailController);
 
 router.patch(
   '/:saleId',
