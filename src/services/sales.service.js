@@ -28,10 +28,6 @@ import {
   buildMySaleStatusCounts,
   buildSaleMethodCounts,
   buildSaleStatusCounts,
-  GENRE_VALUES,
-  GRADE_VALUES,
-  SALE_METHOD_VALUES,
-  SALE_STATUS_VALUES,
 } from '../helpers/buildFilterCounts.helper.js';
 import { createNotificationService } from './notification.service.js';
 import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';

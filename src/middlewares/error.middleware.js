@@ -1,6 +1,8 @@
 import { ERROR_CODES } from '../constants/errorCodes.js';
 
 export const errorHandler = (error, req, res, next) => {
+  void next;
+
   console.error(error);
 
   const statusCode =

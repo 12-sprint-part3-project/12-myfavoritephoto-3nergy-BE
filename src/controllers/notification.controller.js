@@ -4,7 +4,6 @@ import {
   readNotificationService,
 } from '../services/notification.service.js';
 import { addSseClient, removeSseClient } from '../utills/sse.js';
-import { notificationIdParamSchema } from '../validators/notification.schema.js';
 
 //내 알림 목록 조회
 export const getMyNotifications = async (req, res, next) => {

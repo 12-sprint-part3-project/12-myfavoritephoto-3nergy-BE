@@ -250,7 +250,7 @@ export const googleCallback = async (code) => {
     );
 
     googleUser = userInfoResponse.data;
-  } catch (error) {
+  } catch {
     throw AppError(ERROR_CODES.GOOGLE_AUTH_FAILED);
   }
 

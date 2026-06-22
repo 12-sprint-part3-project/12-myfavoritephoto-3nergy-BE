@@ -12,13 +12,10 @@ import {
   findTradeByIdRepository,
   findSaleCardRepository,
   updateUserPhotocardOwnerAndStatusRepository,
-  findPendingTradesBySaleRepository,
-  updateTradesStatusRepository,
 } from '../repositories/trades.repository.js';
 import {
   decreaseSaleRemainingQuantityRepository,
   updateSaleStatusRepository,
-  updateUserPhotocardsStatusRepository,
 } from '../repositories/sales.repository.js';
 import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';
 import { createNotificationService } from './notification.service.js';
