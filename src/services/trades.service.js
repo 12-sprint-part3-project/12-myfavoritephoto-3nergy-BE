@@ -1,32 +1,43 @@
-import prisma from '../lib/prisma.js';
-import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
-import {
-  createTradeRepository,
-  findSaleByIdRepository,
-  findUserPhotocardByIdRepository,
-  updateUserPhotocardStatusRepository,
-  findReceivedTradesBySaleRepository,
-  findMyTradesBySaleRepository,
-  updateTradeStatusRepository,
-  findTradeByIdRepository,
-  findSaleCardRepository,
-  updateUserPhotocardOwnerAndStatusRepository,
-} from '../repositories/trades.repository.js';
+import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';
+import { AppError } from '../errors/AppError.js';
+import { cancelPendingTradesBySoldOutService } from '../helpers/soldOut.helper.js';
+import prisma from '../lib/prisma.js';
 import {
   decreaseSaleRemainingQuantityRepository,
   updateSaleStatusRepository,
 } from '../repositories/sales.repository.js';
-import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';
-import { createNotificationService } from './notification.service.js';
+import {
+  createTradeRepository,
+  findMyTradesBySaleRepository,
+  findReceivedTradesBySaleRepository,
+  findSaleByIdRepository,
+  findSaleCardRepository,
+  findTradeByIdRepository,
+  findUserPhotocardByIdRepository,
+  updateTradeStatusRepository,
+  updateUserPhotocardOwnerAndStatusRepository,
+  updateUserPhotocardStatusRepository,
+} from '../repositories/trades.repository.js';
 import { findUserNicknameByUuid } from '../repositories/user.repository.js';
-import { cancelPendingTradesBySoldOutService } from '../helpers/soldOut.helper.js';
+import { createNotificationService } from './notification.service.js';
 
 // 특정 판매글의 교환 제안 목록을 조회
+// 특정 판매글의 교환 제안 목록을 조회
 export const getReceivedTradesBySaleService = async ({ saleId, userUuid }) => {
-  const trades = await findReceivedTradesBySaleRepository({
+  const where = {
     saleId,
     receiverUuid: userUuid,
+    status: 'PENDING',
+  };
+
+  const orderBy = {
+    createdAt: 'desc',
+  };
+
+  const trades = await findReceivedTradesBySaleRepository({
+    where,
+    orderBy,
   });
 
   return trades.map((trade) => ({
@@ -199,9 +210,19 @@ export const cancelTradeService = async ({ tradeId, userUuid }) => {
 
 // 특정 판매글에 내가 제시한 교환 목록 조회
 export const getMyTradesBySaleService = async ({ saleId, userUuid }) => {
-  const trades = await findMyTradesBySaleRepository({
+  const where = {
     saleId,
     proposerUuid: userUuid,
+    status: 'PENDING',
+  };
+
+  const orderBy = {
+    createdAt: 'desc',
+  };
+
+  const trades = await findMyTradesBySaleRepository({
+    where,
+    orderBy,
   });
 
   return trades.map((trade) => ({
