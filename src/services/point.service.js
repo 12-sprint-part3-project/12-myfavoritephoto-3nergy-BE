@@ -1,9 +1,12 @@
+import prisma from '../lib/prisma.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
 import { AppError } from '../errors/AppError.js';
 import {
+  createEventPointTransaction,
   findMyPointByUserUuid,
   findRewardStateByUserUuid,
-  rewardEventPointTransaction,
+  increaseUserPoint,
+  upsertRewardState,
 } from '../repositories/point.repository.js';
 
 const EVENT_COOLDOWN_MS = 60 * 60 * 1000; // 1시간
@@ -51,20 +54,41 @@ const validateEventAvailability = (rewardState, now) => {
 export const rewardEventPointUser = async (userUuid) => {
   const now = new Date();
 
-  // 마지막 이벤트 참여 상태 조회
-  const rewardState = await findRewardStateByUserUuid(userUuid);
-
-  // 1시간 참여 제한 검증
-  validateEventAvailability(rewardState, now);
-
   // 이벤트 지급 포인트를 랜덤으로 결정한다.
   const point = getRandomEventPoint();
 
-  // 포인트 지급, 포인트 내역 생성, 마지막 참여 시간 갱신
-  const { balance } = await rewardEventPointTransaction({
-    userUuid,
-    point,
-    now,
+  // 참여 상태 조회, 참여 가능 여부 검증, 포인트 지급을 하나의 트랜잭션으로 처리한다.
+  const { balance } = await prisma.$transaction(async (tx) => {
+    // 마지막 이벤트 참여 상태 조회
+    const rewardState = await findRewardStateByUserUuid(userUuid, tx);
+
+    // 1시간 참여 제한 검증
+    validateEventAvailability(rewardState, now);
+
+    // 유저 포인트 증가
+    const updatedUserPoint = await increaseUserPoint({
+      userUuid,
+      point,
+      tx,
+    });
+
+    // 이벤트 포인트 지급 내역 생성
+    await createEventPointTransaction({
+      userUuid,
+      point,
+      tx,
+    });
+
+    // 마지막 이벤트 참여 시간 생성 또는 갱신
+    await upsertRewardState({
+      userUuid,
+      now,
+      tx,
+    });
+
+    return {
+      balance: updatedUserPoint.balance,
+    };
   });
 
   const nextAvailableAt = getNextAvailableAt(now);
