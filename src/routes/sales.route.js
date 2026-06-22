@@ -9,7 +9,11 @@ import {
   purchaseSaleController,
 } from '../controllers/sales.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import { validate, validateQuery } from '../middlewares/validate.middleware.js';
+import {
+  validate,
+  validateParams,
+  validateQuery,
+} from '../middlewares/validate.middleware.js';
 import {
   getSalesListQuerySchema,
   getMySalesQuerySchema,
@@ -39,7 +43,11 @@ router.get(
   getMySalesController,
 );
 
-router.get('/:saleId', validate(saleIdParamsSchema), getSaleDetailController);
+router.get(
+  '/:saleId',
+  validateParams(saleIdParamsSchema),
+  getSaleDetailController,
+);
 
 router.patch(
   '/:saleId',
