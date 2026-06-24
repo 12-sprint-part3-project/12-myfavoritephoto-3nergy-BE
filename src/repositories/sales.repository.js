@@ -1,4 +1,3 @@
-import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js';
 import prisma from '../lib/prisma.js';
 import {
   cancelSaleSelect,
@@ -14,37 +13,16 @@ import {
   userPhotocardIdSelect,
 } from '../selectors/sales.selector.js';
 
-const buildSaleOrderBy = (sort) => {
-  const orderByMap = {
-    latest: { createdAt: 'desc' },
-    oldest: { createdAt: 'asc' },
-    price_asc: { price: 'asc' },
-    price_desc: { price: 'desc' },
-  };
-
-  return orderByMap[sort] || orderByMap.latest;
-};
-
 // 전체 판매 목록 조회
 export const findSalesListRepository = async ({
-  grade,
-  genre,
-  keyword,
-  status,
-  sort,
+  where,
+  orderBy,
   skip,
   take,
 }) => {
-  const where = {
-    status: status || {
-      in: ['SALE', 'SOLD_OUT'],
-    },
-    photocard: buildPhotocardFilter({ grade, genre, keyword }),
-  };
-
   const salesList = await prisma.sale.findMany({
     where,
-    orderBy: buildSaleOrderBy(sort),
+    orderBy,
     skip,
     take,
     include: saleListInclude,
@@ -103,20 +81,7 @@ export const updateUserPhotocardsStatusRepository = async (
 };
 
 // 내 판매 목록 조회
-export const findMySalesRepository = async ({
-  userUuid,
-  grade,
-  genre,
-  keyword,
-}) => {
-  const where = {
-    userUuid,
-    status: {
-      in: ['SALE', 'SOLD_OUT'],
-    },
-    photocard: buildPhotocardFilter({ grade, genre, keyword }),
-  };
-
+export const findMySalesRepository = async ({ where }) => {
   return prisma.sale.findMany({
     where,
     include: mySaleListInclude,
@@ -124,20 +89,9 @@ export const findMySalesRepository = async ({
 };
 
 // 내 교환 제안 대기 목록 조회
-export const findMyPendingTradesRepository = async ({
-  userUuid,
-  grade,
-  genre,
-  keyword,
-}) => {
+export const findMyPendingTradesRepository = async ({ where }) => {
   return prisma.trade.findMany({
-    where: {
-      proposerUuid: userUuid,
-      status: 'PENDING',
-      offeredCard: {
-        photocard: buildPhotocardFilter({ grade, genre, keyword }),
-      },
-    },
+    where,
     include: myPendingTradeInclude,
   });
 };

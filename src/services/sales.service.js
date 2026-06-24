@@ -1,27 +1,6 @@
-import {
-  findSalesListRepository,
-  createSaleRepository,
-  findOwnedPhotocardsRepository,
-  findMySalesRepository,
-  findMyPendingTradesRepository,
-  findSaleDetailRepository,
-  updateUserPhotocardsStatusRepository,
-  findSaleForUpdateRepository,
-  updateSaleRepository,
-  findOnSaleUserPhotocardsRepository,
-  cancelSaleRepository,
-  updateUserPointBalanceRepository,
-  findUserPointRepository,
-  decreaseSaleRemainingQuantityRepository,
-  createPointTransactionRepository,
-  transferUserPhotocardsRepository,
-  createSaleLogRepository,
-  updateSaleStatusRepository,
-  findActiveSaleByPhotocardRepository,
-} from '../repositories/sales.repository.js';
-import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
-import prisma from '../lib/prisma.js';
+import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';
+import { AppError } from '../errors/AppError.js';
 import {
   buildGenreCounts,
   buildGradeCounts,
@@ -29,14 +8,37 @@ import {
   buildSaleMethodCounts,
   buildSaleStatusCounts,
 } from '../helpers/buildFilterCounts.helper.js';
-import { createNotificationService } from './notification.service.js';
-import { NOTIFICATION_PRESET } from '../constants/notification.constants.js';
-import { findUserNicknameByUuid } from '../repositories/user.repository.js';
+import { buildPhotocardFilter } from '../helpers/buildPhotocardFilter.helper.js';
+import { buildSaleOrderBy } from '../helpers/buildSaleOrderBy.helper.js';
+import { cancelPendingTradesBySoldOutService } from '../helpers/soldOut.helper.js';
+import prisma from '../lib/prisma.js';
+import {
+  cancelSaleRepository,
+  createPointTransactionRepository,
+  createSaleLogRepository,
+  createSaleRepository,
+  decreaseSaleRemainingQuantityRepository,
+  findActiveSaleByPhotocardRepository,
+  findMyPendingTradesRepository,
+  findMySalesRepository,
+  findOnSaleUserPhotocardsRepository,
+  findOwnedPhotocardsRepository,
+  findSaleDetailRepository,
+  findSaleForUpdateRepository,
+  findSalesListRepository,
+  findUserPointRepository,
+  transferUserPhotocardsRepository,
+  updateSaleRepository,
+  updateSaleStatusRepository,
+  updateUserPhotocardsStatusRepository,
+  updateUserPointBalanceRepository,
+} from '../repositories/sales.repository.js';
 import {
   findPendingTradesBySaleIdRepository,
   updateTradesStatusRepository,
 } from '../repositories/trades.repository.js';
-import { cancelPendingTradesBySoldOutService } from '../helpers/soldOut.helper.js';
+import { findUserNicknameByUuid } from '../repositories/user.repository.js';
+import { createNotificationService } from './notification.service.js';
 
 export const getSalesListService = async (query) => {
   const page = Number(query.page) || 1;
@@ -44,13 +46,23 @@ export const getSalesListService = async (query) => {
   const skip = (page - 1) * pageSize;
   const take = pageSize;
 
-  const { salesList, totalCount, countBaseSales } =
-    await findSalesListRepository({
+  const where = {
+    status: query.status || {
+      in: ['SALE', 'SOLD_OUT'],
+    },
+    photocard: buildPhotocardFilter({
       grade: query.grade,
       genre: query.genre,
       keyword: query.keyword,
-      status: query.status,
-      sort: query.sort,
+    }),
+  };
+
+  const orderBy = buildSaleOrderBy(query.sort);
+
+  const { salesList, totalCount, countBaseSales } =
+    await findSalesListRepository({
+      where,
+      orderBy,
       skip,
       take,
     });
@@ -180,18 +192,36 @@ export const getMySalesService = async (query) => {
   const page = Number(query.page) || 1;
   const pageSize = Number(query.pageSize) || 20;
 
-  const [mySalesList, pendingTrades] = await Promise.all([
-    findMySalesRepository({
-      userUuid: query.userUuid,
+  const mySalesWhere = {
+    userUuid: query.userUuid,
+    status: {
+      in: ['SALE', 'SOLD_OUT'],
+    },
+    photocard: buildPhotocardFilter({
       grade: query.grade,
       genre: query.genre,
       keyword: query.keyword,
     }),
+  };
+
+  const pendingTradesWhere = {
+    proposerUuid: query.userUuid,
+    status: 'PENDING',
+    offeredCard: {
+      photocard: buildPhotocardFilter({
+        grade: query.grade,
+        genre: query.genre,
+        keyword: query.keyword,
+      }),
+    },
+  };
+
+  const [mySalesList, pendingTrades] = await Promise.all([
+    findMySalesRepository({
+      where: mySalesWhere,
+    }),
     findMyPendingTradesRepository({
-      userUuid: query.userUuid,
-      grade: query.grade,
-      genre: query.genre,
-      keyword: query.keyword,
+      where: pendingTradesWhere,
     }),
   ]);
 

@@ -11,18 +11,12 @@ import {
 
 // 받은 교환 제안 조회
 export const findReceivedTradesBySaleRepository = async ({
-  saleId,
-  receiverUuid,
+  where,
+  orderBy,
 }) => {
   return prisma.trade.findMany({
-    where: {
-      saleId,
-      receiverUuid,
-      status: 'PENDING',
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    where,
+    orderBy,
     include: receivedTradeListInclude,
   });
 };
@@ -91,19 +85,10 @@ export const updateTradeStatusRepository = async (
 };
 
 // 특정 판매글에 내가 제시한 교환 목록 조회
-export const findMyTradesBySaleRepository = async ({
-  saleId,
-  proposerUuid,
-}) => {
+export const findMyTradesBySaleRepository = async ({ where, orderBy }) => {
   return prisma.trade.findMany({
-    where: {
-      saleId,
-      proposerUuid,
-      status: 'PENDING',
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    where,
+    orderBy,
     include: myTradeListInclude,
   });
 };
